@@ -1,7 +1,5 @@
 use std::fmt;
 
-
-
 use crate::errors::*;
 use crate::{Close, Next, Reset};
 
@@ -90,34 +88,18 @@ where
     }
 }
 
-//impl Next<f64> for ExponentialMovingAverage<f64> {
-//    type Output = f64;
-//    fn next(&mut self, input: f64) -> Self::Output {
-//        if self.is_new {
-//            self.is_new = false;
-//            self.current = input;
-//        } else {
-//            self.current = self.k * input + (1.0 - self.k) * self.current;
-//        }
-//        self.current
-//    }
-//}
-
 impl<U> Next<U, !> for ExponentialMovingAverage<U>
 where
     U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
-	//U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + Copy,
 {
     type Output = U;
 
-    //default fn next(&mut self, input: U) -> Self::Output {
-	fn next(&mut self, input: U) -> Self::Output {
+    fn next(&mut self, input: U) -> Self::Output {
         if self.is_new {
             self.is_new = false;
             self.current = input;
         } else {
             self.current = self.k * input + (U::one() - self.k) * self.current;
-			//self.current = self.k * input + self.k * self.current;
         }
         self.current
     }
@@ -131,41 +113,9 @@ where
     type Output = U;
 
     fn next(&mut self, input: &'a T) -> Self::Output {
- //       self.next(input.close())
-
-		let input = input.close();
-		self.next(input)
-
-//        if self.is_new {
-//            self.is_new = false;
-//            self.current = input;
-//        } else {
-//            self.current = self.k * input + (U::one() - self.k) * self.current;
-//			//self.current = self.k * input + self.k * self.current;
-//        }
-//        self.current
-
+        self.next(input.close())
     }
 }
-
-//impl<'a, U, T> Next<&'a T> for ExponentialMovingAverage<U>
-//where
-//    T: Close<U>,
-//    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
-//{
-//    type Output = U;
-//
-//    fn next(&mut self, input: &'a T) -> Self::Output {
-//        let input = input.close();
-//        if self.is_new {
-//            self.is_new = false;
-//            self.current = input;
-//        } else {
-//            self.current = self.k * input + (U::one() - self.k) * self.current;
-//        }
-//        self.current
-//    }
-//}
 
 impl<T> Reset for ExponentialMovingAverage<T>
 where
@@ -199,33 +149,121 @@ mod tests {
 
     test_indicator!(ExponentialMovingAverage);
 
-	#[derive(Debug, PartialEq)]
-	struct Sub<T> {
-		a: T
-	}
+    #[derive(Debug)]
+    struct GenericStructure<T> {
+        a: T,
+    }
 
-	impl<T> Sub<T> {
-		fn new(t: T) -> Self {
-			Self {
-				a: t,
-			}
-		}
-	}
+    impl<T> GenericStructure<T> {
+        fn new(t: T) -> Self {
+            Self { a: t }
+        }
+    }
 
-	impl<T: Copy> Close<T> for Sub<T> {
-		fn close(&self) -> T {
-			self.a
-		}
-	}
+    impl<T: Copy> Close<T> for GenericStructure<T> {
+        fn close(&self) -> T {
+            self.a
+        }
+    }
 
-	#[test]
-    fn test_next_with_struct() {
+    #[test]
+    fn test_next_with_generic_struct_of_f64() {
         let mut ema = ExponentialMovingAverage::<f64>::new(3).unwrap();
 
-        assert_eq!(ema.next(&Sub::<f64>::new(2.0)), 2.0);
-		assert_eq!(ema.next(&Sub::<f64>::new(5.0)), 3.5);
-		assert_eq!(ema.next(&Sub::<f64>::new(1.0)), 2.25);
-		assert_eq!(ema.next(&Sub::<f64>::new(6.25)), 4.25);;
+        assert_eq!(ema.next(&GenericStructure::<f64>::new(2.0)), 2.0);
+        assert_eq!(ema.next(&GenericStructure::<f64>::new(5.0)), 3.5);
+        assert_eq!(ema.next(&GenericStructure::<f64>::new(1.0)), 2.25);
+        assert_eq!(ema.next(&GenericStructure::<f64>::new(6.25)), 4.25);
+    }
+
+    use rust_decimal::Decimal;
+
+    #[test]
+    fn test_next_with_generic_struct_of_decimal() {
+        let mut ema = ExponentialMovingAverage::<Decimal>::new(3).unwrap();
+
+        assert_eq!(
+            ema.next(&GenericStructure::<Decimal>::new(Decimal::new(2, 0))),
+            Decimal::new(2, 0)
+        );
+        assert_eq!(
+            ema.next(&GenericStructure::<Decimal>::new(Decimal::new(5, 0))),
+            Decimal::new(35, 1)
+        );
+        assert_eq!(
+            ema.next(&GenericStructure::<Decimal>::new(Decimal::new(1, 0))),
+            Decimal::new(225, 2)
+        );
+        assert_eq!(
+            ema.next(&GenericStructure::<Decimal>::new(Decimal::new(625, 2))),
+            Decimal::new(425, 2)
+        );
+    }
+
+    #[derive(Debug)]
+    struct F64Structure {
+        a: f64,
+    }
+
+    impl F64Structure {
+        fn new(t: f64) -> Self {
+            Self { a: t }
+        }
+    }
+
+    impl Close<f64> for F64Structure {
+        fn close(&self) -> f64 {
+            self.a
+        }
+    }
+
+    #[test]
+    fn test_next_with_f64_structure() {
+        let mut ema = ExponentialMovingAverage::<f64>::new(3).unwrap();
+
+        assert_eq!(ema.next(&F64Structure::new(2.0)), 2.0);
+        assert_eq!(ema.next(&F64Structure::new(5.0)), 3.5);
+        assert_eq!(ema.next(&F64Structure::new(1.0)), 2.25);
+        assert_eq!(ema.next(&F64Structure::new(6.25)), 4.25);
+    }
+
+    #[derive(Debug)]
+    struct DecimalStructure {
+        a: Decimal,
+    }
+
+    impl DecimalStructure {
+        fn new(t: Decimal) -> Self {
+            Self { a: t }
+        }
+    }
+
+    impl Close<Decimal> for DecimalStructure {
+        fn close(&self) -> Decimal {
+            self.a
+        }
+    }
+
+    #[test]
+    fn test_next_with_decimal_structure() {
+        let mut ema = ExponentialMovingAverage::<Decimal>::new(3).unwrap();
+
+        assert_eq!(
+            ema.next(&DecimalStructure::new(Decimal::new(2, 0))),
+            Decimal::new(2, 0)
+        );
+        assert_eq!(
+            ema.next(&DecimalStructure::new(Decimal::new(5, 0))),
+            Decimal::new(35, 1)
+        );
+        assert_eq!(
+            ema.next(&DecimalStructure::new(Decimal::new(1, 0))),
+            Decimal::new(225, 2)
+        );
+        assert_eq!(
+            ema.next(&DecimalStructure::new(Decimal::new(625, 2))),
+            Decimal::new(425, 2)
+        );
     }
 
     #[test]
