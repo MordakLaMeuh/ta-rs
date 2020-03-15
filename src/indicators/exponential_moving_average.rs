@@ -105,8 +105,8 @@ where
 
 impl<U> Next<U, !> for ExponentialMovingAverage<U>
 where
-    // U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
-	U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + Copy,
+    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
+	//U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + Copy,
 {
     type Output = U;
 
@@ -115,8 +115,8 @@ where
             self.is_new = false;
             self.current = input;
         } else {
-            // self.current = self.k * input + (U::one() - self.k) * self.current;
-			self.current = self.k * input + self.k * self.current;
+            self.current = self.k * input + (U::one() - self.k) * self.current;
+			//self.current = self.k * input + self.k * self.current;
         }
         self.current
     }
@@ -133,15 +133,16 @@ where
  //       self.next(input.close())
 
 		let input = input.close();
+		self.next(input)
 
-        if self.is_new {
-            self.is_new = false;
-            self.current = input;
-        } else {
-            // self.current = self.k * input + (U::one() - self.k) * self.current;
-			self.current = self.k * input + self.k * self.current;
-        }
-        self.current
+//        if self.is_new {
+//            self.is_new = false;
+//            self.current = input;
+//        } else {
+//            self.current = self.k * input + (U::one() - self.k) * self.current;
+//			//self.current = self.k * input + self.k * self.current;
+//        }
+//        self.current
 
     }
 }
