@@ -110,7 +110,8 @@ where
 {
     type Output = U;
 
-    default fn next(&mut self, input: U) -> Self::Output {
+    //default fn next(&mut self, input: U) -> Self::Output {
+	fn next(&mut self, input: U) -> Self::Output {
         if self.is_new {
             self.is_new = false;
             self.current = input;
@@ -197,6 +198,35 @@ mod tests {
     use crate::test_helper::*;
 
     test_indicator!(ExponentialMovingAverage);
+
+	#[derive(Debug, PartialEq)]
+	struct Sub<T> {
+		a: T
+	}
+
+	impl<T> Sub<T> {
+		fn new(t: T) -> Self {
+			Self {
+				a: t,
+			}
+		}
+	}
+
+	impl<T: Copy> Close<T> for Sub<T> {
+		fn close(&self) -> T {
+			self.a
+		}
+	}
+
+	#[test]
+    fn test_next_with_struct() {
+        let mut ema = ExponentialMovingAverage::<f64>::new(3).unwrap();
+
+        assert_eq!(ema.next(&Sub::<f64>::new(2.0)), 2.0);
+		assert_eq!(ema.next(&Sub::<f64>::new(5.0)), 3.5);
+		assert_eq!(ema.next(&Sub::<f64>::new(1.0)), 2.25);
+		assert_eq!(ema.next(&Sub::<f64>::new(6.25)), 4.25);;
+    }
 
     #[test]
     fn test_new() {
