@@ -21,26 +21,26 @@ pub trait Next<T> {
 }
 
 /// Open price of a particular period.
-pub trait Open {
-    fn open(&self) -> f64;
+pub trait Open<T> {
+    fn open(&self) -> T;
 }
 
 /// Close price of a particular period.
-pub trait Close {
-    fn close(&self) -> f64;
+pub trait Close<T> {
+    fn close(&self) -> T;
 }
 
 /// Lowest price of a particular period.
-pub trait Low {
-    fn low(&self) -> f64;
+pub trait Low<T> {
+    fn low(&self) -> T;
 }
 
 /// Highest price of a particular period.
-pub trait High {
-    fn high(&self) -> f64;
+pub trait High<T> {
+    fn high(&self) -> T;
 }
 
 /// Trading volume of a particular trading period.
-pub trait Volume {
-    fn volume(&self) -> f64;
+pub trait Volume<T> {
+    fn volume(&self) -> T;
 }

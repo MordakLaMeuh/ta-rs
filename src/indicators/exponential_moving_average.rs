@@ -3,6 +3,10 @@ use std::fmt;
 use crate::errors::*;
 use crate::{Close, Next, Reset};
 
+use num_traits::cast::FromPrimitive;
+use num_traits::identities::{One, Zero};
+use std::ops::{Add, Div, Mul, Sub};
+
 /// An exponential moving average (EMA), also known as an exponentially weighted moving average
 /// (EWMA).
 ///
@@ -51,23 +55,27 @@ use crate::{Close, Next, Reset};
 ///
 
 #[derive(Debug, Clone)]
-pub struct ExponentialMovingAverage {
+pub struct ExponentialMovingAverage<T> {
     length: u32,
-    k: f64,
-    current: f64,
+    k: T,
+    current: T,
     is_new: bool,
 }
 
-impl ExponentialMovingAverage {
+impl<T> ExponentialMovingAverage<T>
+where
+    T: FromPrimitive + Zero + One + Div<T, Output = T>,
+{
     pub fn new(length: u32) -> Result<Self> {
         match length {
             0 => Err(Error::from_kind(ErrorKind::InvalidParameter)),
             _ => {
-                let k = 2f64 / (length as f64 + 1f64);
+                let k: T = T::from_u32(2).expect("Woot ?")
+                    / (T::from_u32(length).expect("Woot ?") + T::one());
                 let indicator = Self {
                     length,
                     k,
-                    current: 0f64,
+                    current: T::zero(),
                     is_new: true,
                 };
                 Ok(indicator)
@@ -80,9 +88,8 @@ impl ExponentialMovingAverage {
     }
 }
 
-impl Next<f64> for ExponentialMovingAverage {
+impl Next<f64> for ExponentialMovingAverage<f64> {
     type Output = f64;
-
     fn next(&mut self, input: f64) -> Self::Output {
         if self.is_new {
             self.is_new = false;
@@ -94,28 +101,74 @@ impl Next<f64> for ExponentialMovingAverage {
     }
 }
 
-impl<'a, T: Close> Next<&'a T> for ExponentialMovingAverage {
-    type Output = f64;
+//impl<U> Next<U> for ExponentialMovingAverage<U>
+//where
+//    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy + !Close,
+//{
+//    type Output = U;
+//
+//    fn next(&mut self, input: U) -> Self::Output {
+//        if self.is_new {
+//            self.is_new = false;
+//            self.current = input;
+//        } else {
+//            self.current = self.k * input + (U::one() - self.k) * self.current;
+//        }
+//        self.current
+//    }
+//}
+//
+//impl<'a, T, U> Next<&'a T> for ExponentialMovingAverage<U>
+//where
+//    T: Close<U>,
+//    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
+//{
+//    type Output = U;
+//
+//    fn next(&mut self, input: &'a T) -> Self::Output {
+//        self.next(input.close())
+//    }
+//}
+
+impl<'a, U, T> Next<&'a T> for ExponentialMovingAverage<U>
+where
+    T: Close<U>,
+    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
+{
+    type Output = U;
 
     fn next(&mut self, input: &'a T) -> Self::Output {
-        self.next(input.close())
+        let input = input.close();
+        if self.is_new {
+            self.is_new = false;
+            self.current = input;
+        } else {
+            self.current = self.k * input + (U::one() - self.k) * self.current;
+        }
+        self.current
     }
 }
 
-impl Reset for ExponentialMovingAverage {
+impl<T> Reset for ExponentialMovingAverage<T>
+where
+    T: Zero,
+{
     fn reset(&mut self) {
-        self.current = 0.0;
+        self.current = T::zero();
         self.is_new = true;
     }
 }
 
-impl Default for ExponentialMovingAverage {
+impl<T> Default for ExponentialMovingAverage<T>
+where
+    T: FromPrimitive + Zero + One + Div<T, Output = T>,
+{
     fn default() -> Self {
         Self::new(9).unwrap()
     }
 }
 
-impl fmt::Display for ExponentialMovingAverage {
+impl<T> fmt::Display for ExponentialMovingAverage<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "EMA({})", self.length)
     }
@@ -130,8 +183,8 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(ExponentialMovingAverage::new(0).is_err());
-        assert!(ExponentialMovingAverage::new(1).is_ok());
+        assert!(ExponentialMovingAverage::<f64>::new(0).is_err());
+        assert!(ExponentialMovingAverage::<f64>::new(1).is_ok());
     }
 
     #[test]
@@ -166,12 +219,12 @@ mod tests {
 
     #[test]
     fn test_default() {
-        ExponentialMovingAverage::default();
+        ExponentialMovingAverage::<f64>::default();
     }
 
     #[test]
     fn test_display() {
-        let ema = ExponentialMovingAverage::new(7).unwrap();
+        let ema = ExponentialMovingAverage::<f64>::new(7).unwrap();
         assert_eq!(format!("{}", ema), "EMA(7)");
     }
 }

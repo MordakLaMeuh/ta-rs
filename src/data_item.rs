@@ -1,6 +1,8 @@
 use crate::errors::*;
 use crate::traits::{Close, High, Low, Open, Volume};
 
+use num_traits::identities::Zero;
+
 /// Data item is used as an input for indicators.
 ///
 /// # Example
@@ -26,59 +28,59 @@ use crate::traits::{Close, High, Low, Open, Volume};
 /// ```
 ///
 #[derive(Debug, Clone)]
-pub struct DataItem {
-    open: f64,
-    high: f64,
-    low: f64,
-    close: f64,
-    volume: f64,
+pub struct DataItem<T> {
+    open: T,
+    high: T,
+    low: T,
+    close: T,
+    volume: T,
 }
 
-impl DataItem {
-    pub fn builder() -> DataItemBuilder {
+impl<T: PartialOrd + Zero> DataItem<T> {
+    pub fn builder() -> DataItemBuilder<T> {
         DataItemBuilder::new()
     }
 }
 
-impl Open for DataItem {
-    fn open(&self) -> f64 {
+impl<T: Copy> Open<T> for DataItem<T> {
+    fn open(&self) -> T {
         self.open
     }
 }
 
-impl High for DataItem {
-    fn high(&self) -> f64 {
+impl<T: Copy> High<T> for DataItem<T> {
+    fn high(&self) -> T {
         self.high
     }
 }
 
-impl Low for DataItem {
-    fn low(&self) -> f64 {
+impl<T: Copy> Low<T> for DataItem<T> {
+    fn low(&self) -> T {
         self.low
     }
 }
 
-impl Close for DataItem {
-    fn close(&self) -> f64 {
+impl<T: Copy> Close<T> for DataItem<T> {
+    fn close(&self) -> T {
         self.close
     }
 }
 
-impl Volume for DataItem {
-    fn volume(&self) -> f64 {
+impl<T: Copy> Volume<T> for DataItem<T> {
+    fn volume(&self) -> T {
         self.volume
     }
 }
 
-pub struct DataItemBuilder {
-    open: Option<f64>,
-    high: Option<f64>,
-    low: Option<f64>,
-    close: Option<f64>,
-    volume: Option<f64>,
+pub struct DataItemBuilder<T> {
+    open: Option<T>,
+    high: Option<T>,
+    low: Option<T>,
+    close: Option<T>,
+    volume: Option<T>,
 }
 
-impl DataItemBuilder {
+impl<T: PartialOrd + Zero> DataItemBuilder<T> {
     pub fn new() -> Self {
         Self {
             open: None,
@@ -89,32 +91,32 @@ impl DataItemBuilder {
         }
     }
 
-    pub fn open(mut self, val: f64) -> Self {
+    pub fn open(mut self, val: T) -> Self {
         self.open = Some(val);
         self
     }
 
-    pub fn high(mut self, val: f64) -> Self {
+    pub fn high(mut self, val: T) -> Self {
         self.high = Some(val);
         self
     }
 
-    pub fn low(mut self, val: f64) -> Self {
+    pub fn low(mut self, val: T) -> Self {
         self.low = Some(val);
         self
     }
 
-    pub fn close(mut self, val: f64) -> Self {
+    pub fn close(mut self, val: T) -> Self {
         self.close = Some(val);
         self
     }
 
-    pub fn volume(mut self, val: f64) -> Self {
+    pub fn volume(mut self, val: T) -> Self {
         self.volume = Some(val);
         self
     }
 
-    pub fn build(self) -> Result<DataItem> {
+    pub fn build(self) -> Result<DataItem<T>> {
         if let (Some(open), Some(high), Some(low), Some(close), Some(volume)) =
             (self.open, self.high, self.low, self.close, self.volume)
         {
@@ -124,8 +126,8 @@ impl DataItemBuilder {
                 && low <= high
                 && high >= open
                 && high >= close
-                && volume >= 0.0
-                && low >= 0.0
+                && volume >= Zero::zero()
+                && low >= Zero::zero()
             {
                 let item = DataItem {
                     open,
