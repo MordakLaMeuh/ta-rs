@@ -15,7 +15,7 @@ pub trait Reset {
 /// [MACD](indicators/struct.MovingAverageConvergenceDivergence.html) it is `(f64, f64, f64)` since
 /// MACD returns 3 values.
 ///
-pub trait Next<T> {
+pub trait Next<T, U> {
     type Output;
     fn next(&mut self, input: T) -> Self::Output;
 }

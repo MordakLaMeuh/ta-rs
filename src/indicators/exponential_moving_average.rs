@@ -1,5 +1,7 @@
 use std::fmt;
 
+
+
 use crate::errors::*;
 use crate::{Close, Next, Reset};
 
@@ -88,26 +90,71 @@ where
     }
 }
 
-impl Next<f64> for ExponentialMovingAverage<f64> {
-    type Output = f64;
-    fn next(&mut self, input: f64) -> Self::Output {
+//impl Next<f64> for ExponentialMovingAverage<f64> {
+//    type Output = f64;
+//    fn next(&mut self, input: f64) -> Self::Output {
+//        if self.is_new {
+//            self.is_new = false;
+//            self.current = input;
+//        } else {
+//            self.current = self.k * input + (1.0 - self.k) * self.current;
+//        }
+//        self.current
+//    }
+//}
+
+impl<U> Next<U, !> for ExponentialMovingAverage<U>
+where
+    // U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
+	U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + Copy,
+{
+    type Output = U;
+
+    default fn next(&mut self, input: U) -> Self::Output {
         if self.is_new {
             self.is_new = false;
             self.current = input;
         } else {
-            self.current = self.k * input + (1.0 - self.k) * self.current;
+            // self.current = self.k * input + (U::one() - self.k) * self.current;
+			self.current = self.k * input + self.k * self.current;
         }
         self.current
     }
 }
 
-//impl<U> Next<U> for ExponentialMovingAverage<U>
+impl<'a, T, U> Next<&'a T, U> for ExponentialMovingAverage<U>
+where
+    T: Close<U>,
+    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
+{
+    type Output = U;
+
+    fn next(&mut self, input: &'a T) -> Self::Output {
+ //       self.next(input.close())
+
+		let input = input.close();
+
+        if self.is_new {
+            self.is_new = false;
+            self.current = input;
+        } else {
+            // self.current = self.k * input + (U::one() - self.k) * self.current;
+			self.current = self.k * input + self.k * self.current;
+        }
+        self.current
+
+    }
+}
+
+//impl<'a, U, T> Next<&'a T> for ExponentialMovingAverage<U>
 //where
-//    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy + !Close,
+//    T: Close<U>,
+//    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
 //{
 //    type Output = U;
 //
-//    fn next(&mut self, input: U) -> Self::Output {
+//    fn next(&mut self, input: &'a T) -> Self::Output {
+//        let input = input.close();
 //        if self.is_new {
 //            self.is_new = false;
 //            self.current = input;
@@ -117,37 +164,6 @@ impl Next<f64> for ExponentialMovingAverage<f64> {
 //        self.current
 //    }
 //}
-//
-//impl<'a, T, U> Next<&'a T> for ExponentialMovingAverage<U>
-//where
-//    T: Close<U>,
-//    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
-//{
-//    type Output = U;
-//
-//    fn next(&mut self, input: &'a T) -> Self::Output {
-//        self.next(input.close())
-//    }
-//}
-
-impl<'a, U, T> Next<&'a T> for ExponentialMovingAverage<U>
-where
-    T: Close<U>,
-    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
-{
-    type Output = U;
-
-    fn next(&mut self, input: &'a T) -> Self::Output {
-        let input = input.close();
-        if self.is_new {
-            self.is_new = false;
-            self.current = input;
-        } else {
-            self.current = self.k * input + (U::one() - self.k) * self.current;
-        }
-        self.current
-    }
-}
 
 impl<T> Reset for ExponentialMovingAverage<T>
 where

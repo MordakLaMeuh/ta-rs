@@ -46,6 +46,9 @@
 //!   * [Rate of Change (ROC)](indicators/struct.RateOfChange.html)
 //!   * [On Balance Volume (OBV)](indicators/struct.OnBalanceVolume.html)
 //!
+#![feature(specialization)]
+#![feature(never_type)]
+
 #[macro_use]
 extern crate error_chain;
 
