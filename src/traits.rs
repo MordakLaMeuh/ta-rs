@@ -29,6 +29,16 @@ where
 
 impl<T> ArithmeticValues for T where T: Zero + One + FromPrimitive {}
 
+pub trait ArithmeticCompare: PartialOrd + PartialEq
+where
+    Self: std::marker::Sized,
+{
+    // we'd usually add more functions in this block,
+    // but in this case we don't need any more.
+}
+
+impl<T> ArithmeticCompare for T where T: PartialOrd + PartialEq {}
+
 /// Resets an indicator to the initial state.
 pub trait Reset {
     fn reset(&mut self);

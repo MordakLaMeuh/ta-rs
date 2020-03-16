@@ -6,9 +6,9 @@ pub use self::simple_moving_average::SimpleMovingAverage;
 
 //mod standard_deviation;
 //pub use self::standard_deviation::StandardDeviation;
-//
-//mod relative_strength_index;
-//pub use self::relative_strength_index::RelativeStrengthIndex;
+
+mod relative_strength_index;
+pub use self::relative_strength_index::RelativeStrengthIndex;
 //
 //mod minimum;
 //pub use self::minimum::Minimum;
