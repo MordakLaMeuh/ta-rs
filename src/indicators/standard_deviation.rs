@@ -181,25 +181,6 @@ mod tests {
 
     test_indicator!(StandardDeviation);
 
-    use rust_decimal::Decimal;
-
-    #[derive(Debug, Copy, Clone)]
-    struct DecimalStructure {
-        a: Decimal,
-    }
-
-    impl DecimalStructure {
-        fn new(t: Decimal) -> Self {
-            Self { a: t }
-        }
-    }
-
-    impl Close<Decimal> for DecimalStructure {
-        fn close(&self) -> Decimal {
-            self.a
-        }
-    }
-
     #[test]
     fn test_new() {
         assert!(StandardDeviation::<f64>::new(0).is_err());

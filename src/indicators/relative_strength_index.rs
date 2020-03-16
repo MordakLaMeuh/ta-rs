@@ -168,25 +168,6 @@ mod tests {
 
     test_indicator!(RelativeStrengthIndex);
 
-    use rust_decimal::Decimal;
-
-    #[derive(Debug)]
-    struct DecimalStructure {
-        a: Decimal,
-    }
-
-    impl DecimalStructure {
-        fn new(t: Decimal) -> Self {
-            Self { a: t }
-        }
-    }
-
-    impl Close<Decimal> for DecimalStructure {
-        fn close(&self) -> Decimal {
-            self.a
-        }
-    }
-
     #[test]
     fn test_new() {
         assert!(RelativeStrengthIndex::<f64>::new(0).is_err());

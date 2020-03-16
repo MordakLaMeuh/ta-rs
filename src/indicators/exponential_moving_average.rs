@@ -146,59 +146,6 @@ mod tests {
 
     test_indicator!(ExponentialMovingAverage);
 
-    #[derive(Debug)]
-    struct GenericStructure<T> {
-        a: T,
-    }
-
-    impl<T> GenericStructure<T> {
-        fn new(t: T) -> Self {
-            Self { a: t }
-        }
-    }
-
-    impl<T: Copy> Close<T> for GenericStructure<T> {
-        fn close(&self) -> T {
-            self.a
-        }
-    }
-
-    #[derive(Debug)]
-    struct F64Structure {
-        a: f64,
-    }
-
-    impl F64Structure {
-        fn new(t: f64) -> Self {
-            Self { a: t }
-        }
-    }
-
-    impl Close<f64> for F64Structure {
-        fn close(&self) -> f64 {
-            self.a
-        }
-    }
-
-    use rust_decimal::Decimal;
-
-    #[derive(Debug)]
-    struct DecimalStructure {
-        a: Decimal,
-    }
-
-    impl DecimalStructure {
-        fn new(t: Decimal) -> Self {
-            Self { a: t }
-        }
-    }
-
-    impl Close<Decimal> for DecimalStructure {
-        fn close(&self) -> Decimal {
-            self.a
-        }
-    }
-
     #[test]
     fn test_new() {
         assert!(ExponentialMovingAverage::<f64>::new(0).is_err());
