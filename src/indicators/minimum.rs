@@ -1,7 +1,7 @@
-use std::f64::INFINITY;
 use std::fmt;
 
 use crate::errors::*;
+use crate::{ArithmeticCompare, ArithmeticOps, ArithmeticValues};
 use crate::{Low, Next, Reset};
 
 /// Returns the lowest value in a given time frame.
@@ -23,14 +23,16 @@ use crate::{Low, Next, Reset};
 /// assert_eq!(min.next(13.0), 11.0);
 /// ```
 #[derive(Debug, Clone)]
-pub struct Minimum {
-    n: usize,
-    vec: Vec<f64>,
+pub struct Minimum<T> {
+    vec: Vec<Option<T>>,
     min_index: usize,
     cur_index: usize,
 }
 
-impl Minimum {
+impl<T> Minimum<T>
+where
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
     pub fn new(n: u32) -> Result<Self> {
         let n = n as usize;
 
@@ -39,8 +41,7 @@ impl Minimum {
         }
 
         let indicator = Self {
-            n: n,
-            vec: vec![INFINITY; n],
+            vec: vec![None; n],
             min_index: 0,
             cur_index: 0,
         };
@@ -48,63 +49,83 @@ impl Minimum {
         Ok(indicator)
     }
 
-    fn find_min_index(&self) -> usize {
-        let mut min = ::std::f64::INFINITY;
-        let mut index: usize = 0;
+    fn find_min_index(&self) -> Option<usize> {
+        let mut min_value: Option<T> = None;
+        let mut min_index: Option<usize> = None;
 
-        for (i, &val) in self.vec.iter().enumerate() {
-            if val < min {
-                min = val;
-                index = i;
+        for (i, val) in self.vec.iter().enumerate() {
+            if let Some(value) = val {
+                match min_index {
+                    Some(_) => {
+                        if *value < min_value.expect("cannot happened") {
+                            min_index = Some(i);
+                            min_value = *val;
+                        }
+                    }
+                    None => {
+                        min_index = Some(i);
+                        min_value = *val;
+                    }
+                }
             }
         }
-
-        index
+        min_index
     }
 }
 
-impl Next<f64> for Minimum {
-    type Output = f64;
+impl<T> Next<T, !> for Minimum<T>
+where
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
+    type Output = T;
 
-    fn next(&mut self, input: f64) -> Self::Output {
-        self.cur_index = (self.cur_index + 1) % (self.n as usize);
-        self.vec[self.cur_index] = input;
+    fn next(&mut self, input: T) -> Self::Output {
+        self.cur_index = (self.cur_index + 1) % self.vec.len();
+        self.vec[self.cur_index] = Some(input);
 
-        if input < self.vec[self.min_index] {
-            self.min_index = self.cur_index;
-        } else if self.min_index == self.cur_index {
-            self.min_index = self.find_min_index();
+        if let Some(min_value) = self.vec[self.min_index] {
+            if input < min_value {
+                self.min_index = self.cur_index;
+                return self.vec[self.min_index].expect("Cannot happened");
+            }
         }
-
-        self.vec[self.min_index]
+        self.min_index = self.find_min_index().expect("Cannot happened");
+        self.vec[self.min_index].expect("Cannot happened")
     }
 }
 
-impl<'a, T: Low> Next<&'a T> for Minimum {
-    type Output = f64;
+impl<'a, U, T> Next<&'a U, T> for Minimum<T>
+where
+    U: Low<T>,
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
+    type Output = T;
 
-    fn next(&mut self, input: &'a T) -> Self::Output {
+    fn next(&mut self, input: &'a U) -> Self::Output {
         self.next(input.low())
     }
 }
 
-impl Reset for Minimum {
+impl<T> Reset for Minimum<T> {
     fn reset(&mut self) {
-        for i in 0..self.n {
-            self.vec[i] = INFINITY;
+        for elmt in self.vec.iter_mut() {
+            *elmt = None;
         }
     }
 }
 
-impl Default for Minimum {
+impl<T> Default for Minimum<T>
+where
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
     fn default() -> Self {
         Self::new(14).unwrap()
     }
 }
 
-impl fmt::Display for Minimum {
+impl<T> fmt::Display for Minimum<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "MIN({})", self.n)
+        write!(f, "MIN({})", self.vec.len())
     }
 }
 
@@ -117,13 +138,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(Minimum::new(0).is_err());
-        assert!(Minimum::new(1).is_ok());
+        assert!(Minimum::<f64>::new(0).is_err());
+        assert!(Minimum::<f64>::new(1).is_ok());
     }
 
     #[test]
     fn test_next() {
-        let mut min = Minimum::new(3).unwrap();
+        let mut min = Minimum::<f64>::new(3).unwrap();
 
         assert_eq!(min.next(4.0), 4.0);
         assert_eq!(min.next(1.2), 1.2);
@@ -143,7 +164,7 @@ mod tests {
             Bar::new().low(low)
         }
 
-        let mut min = Minimum::new(3).unwrap();
+        let mut min = Minimum::<f64>::new(3).unwrap();
 
         assert_eq!(min.next(&bar(4.0)), 4.0);
         assert_eq!(min.next(&bar(4.0)), 4.0);
@@ -153,7 +174,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut min = Minimum::new(10).unwrap();
+        let mut min = Minimum::<f64>::new(10).unwrap();
 
         assert_eq!(min.next(5.0), 5.0);
         assert_eq!(min.next(7.0), 5.0);
@@ -164,12 +185,12 @@ mod tests {
 
     #[test]
     fn test_default() {
-        Minimum::default();
+        Minimum::<f64>::default();
     }
 
     #[test]
     fn test_display() {
-        let indicator = Minimum::new(10).unwrap();
+        let indicator = Minimum::<f64>::new(10).unwrap();
         assert_eq!(format!("{}", indicator), "MIN(10)");
     }
 }

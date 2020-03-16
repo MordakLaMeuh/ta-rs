@@ -9,13 +9,13 @@ pub use self::standard_deviation::StandardDeviation;
 
 mod relative_strength_index;
 pub use self::relative_strength_index::RelativeStrengthIndex;
-//
-//mod minimum;
-//pub use self::minimum::Minimum;
-//
+
+mod minimum;
+pub use self::minimum::Minimum;
+
 //mod maximum;
 //pub use self::maximum::Maximum;
-//
+
 //mod fast_stochastic;
 //pub use self::fast_stochastic::FastStochastic;
 //
