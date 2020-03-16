@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::errors::*;
+use crate::{ArithmeticOps, ArithmeticValues};
 use crate::{Close, Next, Reset};
 
 /// Standard deviation (SD).
@@ -37,16 +38,19 @@ use crate::{Close, Next, Reset};
 /// * [Standard Deviation, Wikipedia](https://en.wikipedia.org/wiki/Standard_deviation)
 ///
 #[derive(Debug, Clone)]
-pub struct StandardDeviation {
+pub struct StandardDeviation<T> {
     n: u32,
     index: usize,
     count: u32,
-    m: f64,
-    m2: f64,
-    vec: Vec<f64>,
+    m: T,
+    m2: T,
+    vec: Vec<T>,
 }
 
-impl StandardDeviation {
+impl<T> StandardDeviation<T>
+where
+    T: Copy + Clone + ArithmeticOps + ArithmeticValues,
+{
     pub fn new(n: u32) -> Result<Self> {
         match n {
             0 => Err(Error::from_kind(ErrorKind::InvalidParameter)),
@@ -55,24 +59,53 @@ impl StandardDeviation {
                     n,
                     index: 0,
                     count: 0,
-                    m: 0.0,
-                    m2: 0.0,
-                    vec: vec![0.0; n as usize],
+                    m: T::zero(),
+                    m2: T::zero(),
+                    vec: vec![T::zero(); n as usize],
                 };
                 Ok(std)
             }
         }
     }
 
-    pub(super) fn mean(&self) -> f64 {
+    pub(super) fn mean(&self) -> T {
         self.m
     }
 }
 
-impl Next<f64> for StandardDeviation {
-    type Output = f64;
+/// Heron method: An+1 = 1/2 * (an + A/an)
+/// See http://villemin.gerard.free.fr/ThNbDemo/Heron.htm
+fn find_square_root<T>(seed: T, v: T, ttl: usize) -> T
+where
+    T: Copy + ArithmeticOps + ArithmeticValues,
+{
+    if ttl == 0 {
+        seed
+    } else {
+        find_square_root(
+            T::one() / T::from_u32(2).expect("Woot ?") * (seed + v / seed),
+            v,
+            ttl - 1,
+        )
+    }
+}
 
-    fn next(&mut self, input: f64) -> Self::Output {
+const TTL: usize = 64;
+
+fn sqrt<T>(v: T) -> T
+where
+    T: Copy + ArithmeticOps + ArithmeticValues,
+{
+    find_square_root(v, v, TTL)
+}
+
+impl<T> Next<T, !> for StandardDeviation<T>
+where
+    T: Copy + ArithmeticOps + ArithmeticValues,
+{
+    type Output = T;
+
+    fn next(&mut self, input: T) -> Self::Output {
         self.index = (self.index + 1) % (self.n as usize);
 
         let old_val = self.vec[self.index];
@@ -81,48 +114,85 @@ impl Next<f64> for StandardDeviation {
         if self.count < self.n {
             self.count += 1;
             let delta = input - self.m;
-            self.m += delta / self.count as f64;
+            self.m += delta / T::from_u32(self.count).expect("Woot ?");
             let delta2 = input - self.m;
             self.m2 += delta * delta2;
         } else {
             let delta = input - old_val;
             let old_m = self.m;
-            self.m += delta / self.n as f64;
+            self.m += delta / T::from_u32(self.n).expect("Woot ?");
             let delta2 = input - self.m + old_val - old_m;
             self.m2 += delta * delta2;
         }
 
-        (self.m2 / self.count as f64).sqrt()
+        sqrt(self.m2 / T::from_u32(self.count).expect("Woot ?"))
     }
 }
 
-impl<'a, T: Close> Next<&'a T> for StandardDeviation {
-    type Output = f64;
+//impl Next<f64, !> for StandardDeviation<f64>
+//{
+//    type Output = f64;
+//
+//    fn next(&mut self, input: f64) -> Self::Output {
+//        self.index = (self.index + 1) % (self.n as usize);
+//
+//        let old_val = self.vec[self.index];
+//        self.vec[self.index] = input;
+//
+//        if self.count < self.n {
+//            self.count += 1;
+//            let delta = input - self.m;
+//            self.m += delta / self.count as f64;
+//            let delta2 = input - self.m;
+//            self.m2 += delta * delta2;
+//        } else {
+//            let delta = input - old_val;
+//            let old_m = self.m;
+//            self.m += delta / self.n as f64;
+//            let delta2 = input - self.m + old_val - old_m;
+//            self.m2 += delta * delta2;
+//        }
+//        (self.m2 / self.count as f64).sqrt()
+//    }
+//}
 
-    fn next(&mut self, input: &'a T) -> Self::Output {
+impl<'a, U, T> Next<&'a U, T> for StandardDeviation<T>
+where
+    U: Close<T>,
+    T: Copy + ArithmeticOps + ArithmeticValues,
+{
+    type Output = T;
+
+    fn next(&mut self, input: &'a U) -> Self::Output {
         self.next(input.close())
     }
 }
 
-impl Reset for StandardDeviation {
+impl<T> Reset for StandardDeviation<T>
+where
+    T: ArithmeticValues,
+{
     fn reset(&mut self) {
         self.index = 0;
         self.count = 0;
-        self.m = 0.0;
-        self.m2 = 0.0;
+        self.m = T::zero();
+        self.m2 = T::zero();
         for i in 0..(self.n as usize) {
-            self.vec[i] = 0.0;
+            self.vec[i] = T::zero();
         }
     }
 }
 
-impl Default for StandardDeviation {
+impl<T> Default for StandardDeviation<T>
+where
+    T: Copy + Clone + ArithmeticOps + ArithmeticValues,
+{
     fn default() -> Self {
         Self::new(9).unwrap()
     }
 }
 
-impl fmt::Display for StandardDeviation {
+impl<T> fmt::Display for StandardDeviation<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "SD({})", self.n)
     }
@@ -135,15 +205,36 @@ mod tests {
 
     test_indicator!(StandardDeviation);
 
+    use rust_decimal::Decimal;
+
+    #[derive(Debug, Copy, Clone)]
+    struct DecimalStructure {
+        a: Decimal,
+    }
+
+    impl DecimalStructure {
+        fn new(t: Decimal) -> Self {
+            Self { a: t }
+        }
+    }
+
+    impl Close<Decimal> for DecimalStructure {
+        fn close(&self) -> Decimal {
+            self.a
+        }
+    }
+
     #[test]
     fn test_new() {
-        assert!(StandardDeviation::new(0).is_err());
-        assert!(StandardDeviation::new(1).is_ok());
+        assert!(StandardDeviation::<f64>::new(0).is_err());
+        assert!(StandardDeviation::<f64>::new(1).is_ok());
+        assert!(StandardDeviation::<Decimal>::new(0).is_err());
+        assert!(StandardDeviation::<Decimal>::new(1).is_ok());
     }
 
     #[test]
     fn test_next() {
-        let mut sd = StandardDeviation::new(4).unwrap();
+        let mut sd = StandardDeviation::<f64>::new(4).unwrap();
         assert_eq!(sd.next(10.0), 0.0);
         assert_eq!(sd.next(20.0), 5.0);
         assert_eq!(round(sd.next(30.0)), 8.165);
@@ -153,12 +244,35 @@ mod tests {
     }
 
     #[test]
+    fn test_next_decimal() {
+        let mut sd = StandardDeviation::<Decimal>::new(4).unwrap();
+        assert_eq!(sd.next(Decimal::new(10, 0)), Decimal::new(0, 0));
+        assert_eq!(sd.next(Decimal::new(20, 0)), Decimal::new(5, 0));
+        assert_eq!(
+            Decimal::round(&sd.next(Decimal::new(30, 0))),
+            Decimal::new(8165, 3)
+        );
+        assert_eq!(
+            Decimal::round(&sd.next(Decimal::new(20, 0))),
+            Decimal::new(7071, 3)
+        );
+        assert_eq!(
+            Decimal::round(&sd.next(Decimal::new(10, 0))),
+            Decimal::new(7071, 3)
+        );
+        assert_eq!(
+            Decimal::round(&sd.next(Decimal::new(100, 0))),
+            Decimal::new(35355, 3)
+        );
+    }
+
+    #[test]
     fn test_next_with_bars() {
         fn bar(close: f64) -> Bar {
             Bar::new().close(close)
         }
 
-        let mut sd = StandardDeviation::new(4).unwrap();
+        let mut sd = StandardDeviation::<f64>::new(4).unwrap();
         assert_eq!(sd.next(&bar(10.0)), 0.0);
         assert_eq!(sd.next(&bar(20.0)), 5.0);
         assert_eq!(round(sd.next(&bar(30.0))), 8.165);
@@ -168,17 +282,64 @@ mod tests {
     }
 
     #[test]
+    fn test_next_with_decimal() {
+        let mut sd = StandardDeviation::<Decimal>::new(4).unwrap();
+        assert_eq!(
+            sd.next(&DecimalStructure::new(Decimal::new(10, 0))),
+            Decimal::new(0, 0)
+        );
+        assert_eq!(
+            sd.next(&DecimalStructure::new(Decimal::new(20, 0))),
+            Decimal::new(5, 0)
+        );
+        assert_eq!(
+            Decimal::round(&sd.next(&DecimalStructure::new(Decimal::new(30, 0)))),
+            Decimal::new(8165, 3)
+        );
+        assert_eq!(
+            Decimal::round(&sd.next(&DecimalStructure::new(Decimal::new(20, 0)))),
+            Decimal::new(7071, 3)
+        );
+        assert_eq!(
+            Decimal::round(&sd.next(&DecimalStructure::new(Decimal::new(10, 0)))),
+            Decimal::new(7071, 3)
+        );
+        assert_eq!(
+            Decimal::round(&sd.next(&DecimalStructure::new(Decimal::new(100, 0)))),
+            Decimal::new(35355, 3)
+        );
+    }
+
+    #[test]
     fn test_next_same_values() {
-        let mut sd = StandardDeviation::new(3).unwrap();
+        let mut sd = StandardDeviation::<f64>::new(3).unwrap();
         assert_eq!(sd.next(4.2), 0.0);
         assert_eq!(sd.next(4.2), 0.0);
         assert_eq!(sd.next(4.2), 0.0);
         assert_eq!(sd.next(4.2), 0.0);
+
+        let mut sd = StandardDeviation::<Decimal>::new(3).unwrap();
+        assert_eq!(
+            sd.next(&DecimalStructure::new(Decimal::new(42, 0))),
+            Decimal::new(0, 0)
+        );
+        assert_eq!(
+            sd.next(&DecimalStructure::new(Decimal::new(42, 0))),
+            Decimal::new(0, 0)
+        );
+        assert_eq!(
+            sd.next(&DecimalStructure::new(Decimal::new(42, 0))),
+            Decimal::new(0, 0)
+        );
+        assert_eq!(
+            sd.next(&DecimalStructure::new(Decimal::new(42, 0))),
+            Decimal::new(0, 0)
+        );
     }
 
     #[test]
     fn test_reset() {
-        let mut sd = StandardDeviation::new(4).unwrap();
+        let mut sd = StandardDeviation::<f64>::new(4).unwrap();
         assert_eq!(sd.next(10.0), 0.0);
         assert_eq!(sd.next(20.0), 5.0);
         assert_eq!(round(sd.next(30.0)), 8.165);
@@ -189,12 +350,15 @@ mod tests {
 
     #[test]
     fn test_default() {
-        StandardDeviation::default();
+        StandardDeviation::<f64>::default();
+        StandardDeviation::<Decimal>::default();
     }
 
     #[test]
     fn test_display() {
-        let sd = StandardDeviation::new(5).unwrap();
+        let sd = StandardDeviation::<f64>::new(5).unwrap();
+        assert_eq!(format!("{}", sd), "SD(5)");
+        let sd = StandardDeviation::<Decimal>::new(5).unwrap();
         assert_eq!(format!("{}", sd), "SD(5)");
     }
 }

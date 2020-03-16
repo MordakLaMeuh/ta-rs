@@ -4,9 +4,17 @@
 use num_traits::cast::FromPrimitive;
 use num_traits::identities::{One, Zero};
 use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{AddAssign, DivAssign, MulAssign, SubAssign};
 
 pub trait ArithmeticOps:
-    Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
+    Add<Output = Self>
+    + Sub<Output = Self>
+    + Mul<Output = Self>
+    + Div<Output = Self>
+    + AddAssign
+    + SubAssign
+    + MulAssign
+    + DivAssign
 where
     Self: std::marker::Sized,
 {
@@ -14,8 +22,10 @@ where
     // but in this case we don't need any more.
 }
 
-impl<T> ArithmeticOps for T where
-    T: Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T>
+impl<T> ArithmeticOps for T
+where
+    T: Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T>,
+    T: AddAssign + SubAssign + MulAssign + DivAssign,
 {
 }
 
