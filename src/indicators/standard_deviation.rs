@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::errors::*;
-use crate::{ArithmeticOps, ArithmeticValues};
+use crate::{ArithmeticCompare, ArithmeticOps, ArithmeticValues};
 use crate::{Close, Next, Reset};
 
 /// Standard deviation (SD).
@@ -49,7 +49,7 @@ pub struct StandardDeviation<T> {
 
 impl<T> StandardDeviation<T>
 where
-    T: Copy + Clone + ArithmeticOps + ArithmeticValues,
+    T: Copy + ArithmeticOps + ArithmeticValues,
 {
     pub fn new(n: u32) -> Result<Self> {
         match n {
@@ -77,10 +77,13 @@ where
 /// See http://villemin.gerard.free.fr/ThNbDemo/Heron.htm
 fn find_square_root<T>(seed: T, v: T, ttl: usize) -> T
 where
-    T: Copy + ArithmeticOps + ArithmeticValues,
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
 {
     if ttl == 0 {
         seed
+    } else if seed == T::zero() {
+        eprintln!("division by zero ?");
+        T::zero()
     } else {
         find_square_root(
             T::one() / T::from_u32(2).expect("Woot ?") * (seed + v / seed),
@@ -90,18 +93,18 @@ where
     }
 }
 
-const TTL: usize = 64;
+const TTL: usize = 32;
 
 fn sqrt<T>(v: T) -> T
 where
-    T: Copy + ArithmeticOps + ArithmeticValues,
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
 {
     find_square_root(v, v, TTL)
 }
 
 impl<T> Next<T, !> for StandardDeviation<T>
 where
-    T: Copy + ArithmeticOps + ArithmeticValues,
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
 {
     type Output = T;
 
@@ -129,37 +132,10 @@ where
     }
 }
 
-//impl Next<f64, !> for StandardDeviation<f64>
-//{
-//    type Output = f64;
-//
-//    fn next(&mut self, input: f64) -> Self::Output {
-//        self.index = (self.index + 1) % (self.n as usize);
-//
-//        let old_val = self.vec[self.index];
-//        self.vec[self.index] = input;
-//
-//        if self.count < self.n {
-//            self.count += 1;
-//            let delta = input - self.m;
-//            self.m += delta / self.count as f64;
-//            let delta2 = input - self.m;
-//            self.m2 += delta * delta2;
-//        } else {
-//            let delta = input - old_val;
-//            let old_m = self.m;
-//            self.m += delta / self.n as f64;
-//            let delta2 = input - self.m + old_val - old_m;
-//            self.m2 += delta * delta2;
-//        }
-//        (self.m2 / self.count as f64).sqrt()
-//    }
-//}
-
 impl<'a, U, T> Next<&'a U, T> for StandardDeviation<T>
 where
     U: Close<T>,
-    T: Copy + ArithmeticOps + ArithmeticValues,
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
 {
     type Output = T;
 
@@ -185,7 +161,7 @@ where
 
 impl<T> Default for StandardDeviation<T>
 where
-    T: Copy + Clone + ArithmeticOps + ArithmeticValues,
+    T: Copy + ArithmeticOps + ArithmeticValues,
 {
     fn default() -> Self {
         Self::new(9).unwrap()
@@ -249,19 +225,19 @@ mod tests {
         assert_eq!(sd.next(Decimal::new(10, 0)), Decimal::new(0, 0));
         assert_eq!(sd.next(Decimal::new(20, 0)), Decimal::new(5, 0));
         assert_eq!(
-            Decimal::round(&sd.next(Decimal::new(30, 0))),
+            Decimal::round_dp(&sd.next(Decimal::new(30, 0)), 3),
             Decimal::new(8165, 3)
         );
         assert_eq!(
-            Decimal::round(&sd.next(Decimal::new(20, 0))),
+            Decimal::round_dp(&sd.next(Decimal::new(20, 0)), 3),
             Decimal::new(7071, 3)
         );
         assert_eq!(
-            Decimal::round(&sd.next(Decimal::new(10, 0))),
+            Decimal::round_dp(&sd.next(Decimal::new(10, 0)), 3),
             Decimal::new(7071, 3)
         );
         assert_eq!(
-            Decimal::round(&sd.next(Decimal::new(100, 0))),
+            Decimal::round_dp(&sd.next(Decimal::new(100, 0)), 3),
             Decimal::new(35355, 3)
         );
     }
@@ -293,19 +269,19 @@ mod tests {
             Decimal::new(5, 0)
         );
         assert_eq!(
-            Decimal::round(&sd.next(&DecimalStructure::new(Decimal::new(30, 0)))),
+            Decimal::round_dp(&sd.next(&DecimalStructure::new(Decimal::new(30, 0))), 3),
             Decimal::new(8165, 3)
         );
         assert_eq!(
-            Decimal::round(&sd.next(&DecimalStructure::new(Decimal::new(20, 0)))),
+            Decimal::round_dp(&sd.next(&DecimalStructure::new(Decimal::new(20, 0))), 3),
             Decimal::new(7071, 3)
         );
         assert_eq!(
-            Decimal::round(&sd.next(&DecimalStructure::new(Decimal::new(10, 0)))),
+            Decimal::round_dp(&sd.next(&DecimalStructure::new(Decimal::new(10, 0))), 3),
             Decimal::new(7071, 3)
         );
         assert_eq!(
-            Decimal::round(&sd.next(&DecimalStructure::new(Decimal::new(100, 0)))),
+            Decimal::round_dp(&sd.next(&DecimalStructure::new(Decimal::new(100, 0))), 3),
             Decimal::new(35355, 3)
         );
     }
