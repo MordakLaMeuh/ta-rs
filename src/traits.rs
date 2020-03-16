@@ -1,6 +1,34 @@
 // Indicator traits
 //
 
+use num_traits::cast::FromPrimitive;
+use num_traits::identities::{One, Zero};
+use std::ops::{Add, Div, Mul, Sub};
+
+pub trait ArithmeticOps:
+    Add<Output = Self> + Sub<Output = Self> + Mul<Output = Self> + Div<Output = Self>
+where
+    Self: std::marker::Sized,
+{
+    // we'd usually add more functions in this block,
+    // but in this case we don't need any more.
+}
+
+impl<T> ArithmeticOps for T where
+    T: Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T>
+{
+}
+
+pub trait ArithmeticValues: Zero + One + FromPrimitive
+where
+    Self: std::marker::Sized,
+{
+    // we'd usually add more functions in this block,
+    // but in this case we don't need any more.
+}
+
+impl<T> ArithmeticValues for T where T: Zero + One + FromPrimitive {}
+
 /// Resets an indicator to the initial state.
 pub trait Reset {
     fn reset(&mut self);
