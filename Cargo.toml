@@ -23,13 +23,13 @@ travis-ci = { repository = "greyblake/ta-rs", branch = "master" }
 [dependencies]
 error-chain = "0.11"
 num-traits = "0.2.11"
-rust_decimal = "1.3.0"
 
 [dev-dependencies]
 assert_approx_eq = "1.0.0"
 csv = "0.15.0"
 bencher = "0.1.5"
 rand = "0.6.5"
+rust_decimal = "1.3.0"
 
 [[bench]]
 name = "indicators"

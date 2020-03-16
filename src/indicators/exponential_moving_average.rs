@@ -64,7 +64,9 @@ pub struct ExponentialMovingAverage<T> {
 
 impl<T> ExponentialMovingAverage<T>
 where
-    T: FromPrimitive + Zero + One + Div<T, Output = T>,
+    T: Zero + One,
+    T: FromPrimitive,
+    T: Div<T, Output = T>,
 {
     pub fn new(length: u32) -> Result<Self> {
         match length {
@@ -88,31 +90,35 @@ where
     }
 }
 
-impl<U> Next<U, !> for ExponentialMovingAverage<U>
+impl<T> Next<T, !> for ExponentialMovingAverage<T>
 where
-    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
+    T: Copy,
+    T: Zero + One,
+    T: Add<T, Output = T> + Sub<T, Output = T> + Mul<T, Output = T> + Div<T, Output = T>,
 {
-    type Output = U;
+    type Output = T;
 
-    fn next(&mut self, input: U) -> Self::Output {
+    fn next(&mut self, input: T) -> Self::Output {
         if self.is_new {
             self.is_new = false;
             self.current = input;
         } else {
-            self.current = self.k * input + (U::one() - self.k) * self.current;
+            self.current = self.k * input + (T::one() - self.k) * self.current;
         }
         self.current
     }
 }
 
-impl<'a, T, U> Next<&'a T, U> for ExponentialMovingAverage<U>
+impl<'a, U, T> Next<&'a U, T> for ExponentialMovingAverage<T>
 where
-    T: Close<U>,
-    U: Mul<U, Output = U> + Sub<U, Output = U> + Add<U, Output = U> + One + Copy,
+    U: Close<T>,
+    T: Copy,
+    T: Zero + One,
+    T: Add<T, Output = T> + Sub<T, Output = T> + Mul<T, Output = T> + Div<T, Output = T>,
 {
-    type Output = U;
+    type Output = T;
 
-    fn next(&mut self, input: &'a T) -> Self::Output {
+    fn next(&mut self, input: &'a U) -> Self::Output {
         self.next(input.close())
     }
 }
@@ -129,7 +135,9 @@ where
 
 impl<T> Default for ExponentialMovingAverage<T>
 where
-    T: FromPrimitive + Zero + One + Div<T, Output = T>,
+    T: Zero + One,
+    T: FromPrimitive,
+    T: Div<T, Output = T>,
 {
     fn default() -> Self {
         Self::new(9).unwrap()
@@ -166,20 +174,66 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_next_with_generic_struct_of_f64() {
-        let mut ema = ExponentialMovingAverage::<f64>::new(3).unwrap();
+    #[derive(Debug)]
+    struct F64Structure {
+        a: f64,
+    }
 
-        assert_eq!(ema.next(&GenericStructure::<f64>::new(2.0)), 2.0);
-        assert_eq!(ema.next(&GenericStructure::<f64>::new(5.0)), 3.5);
-        assert_eq!(ema.next(&GenericStructure::<f64>::new(1.0)), 2.25);
-        assert_eq!(ema.next(&GenericStructure::<f64>::new(6.25)), 4.25);
+    impl F64Structure {
+        fn new(t: f64) -> Self {
+            Self { a: t }
+        }
+    }
+
+    impl Close<f64> for F64Structure {
+        fn close(&self) -> f64 {
+            self.a
+        }
     }
 
     use rust_decimal::Decimal;
 
+    #[derive(Debug)]
+    struct DecimalStructure {
+        a: Decimal,
+    }
+
+    impl DecimalStructure {
+        fn new(t: Decimal) -> Self {
+            Self { a: t }
+        }
+    }
+
+    impl Close<Decimal> for DecimalStructure {
+        fn close(&self) -> Decimal {
+            self.a
+        }
+    }
+
     #[test]
-    fn test_next_with_generic_struct_of_decimal() {
+    fn test_new() {
+        assert!(ExponentialMovingAverage::<f64>::new(0).is_err());
+        assert!(ExponentialMovingAverage::<f64>::new(1).is_ok());
+    }
+
+    #[test]
+    fn test_next_basic_simple() {
+        let mut ema = ExponentialMovingAverage::new(3).unwrap();
+
+        assert_eq!(ema.next(2.0), 2.0);
+        assert_eq!(ema.next(5.0), 3.5);
+        assert_eq!(ema.next(1.0), 2.25);
+        assert_eq!(ema.next(6.25), 4.25);
+
+        let mut ema = ExponentialMovingAverage::new(3).unwrap();
+        let bar1 = Bar::new().close(2);
+        let bar2 = Bar::new().close(5);
+        assert_eq!(ema.next(&bar1), 2.0);
+        assert_eq!(ema.next(&bar2), 3.5);
+    }
+
+    #[test]
+    fn test_next_with_generic_structure() {
         let mut ema = ExponentialMovingAverage::<Decimal>::new(3).unwrap();
 
         assert_eq!(
@@ -200,23 +254,6 @@ mod tests {
         );
     }
 
-    #[derive(Debug)]
-    struct F64Structure {
-        a: f64,
-    }
-
-    impl F64Structure {
-        fn new(t: f64) -> Self {
-            Self { a: t }
-        }
-    }
-
-    impl Close<f64> for F64Structure {
-        fn close(&self) -> f64 {
-            self.a
-        }
-    }
-
     #[test]
     fn test_next_with_f64_structure() {
         let mut ema = ExponentialMovingAverage::<f64>::new(3).unwrap();
@@ -227,25 +264,8 @@ mod tests {
         assert_eq!(ema.next(&F64Structure::new(6.25)), 4.25);
     }
 
-    #[derive(Debug)]
-    struct DecimalStructure {
-        a: Decimal,
-    }
-
-    impl DecimalStructure {
-        fn new(t: Decimal) -> Self {
-            Self { a: t }
-        }
-    }
-
-    impl Close<Decimal> for DecimalStructure {
-        fn close(&self) -> Decimal {
-            self.a
-        }
-    }
-
     #[test]
-    fn test_next_with_decimal_structure() {
+    fn test_next_structure() {
         let mut ema = ExponentialMovingAverage::<Decimal>::new(3).unwrap();
 
         assert_eq!(
@@ -267,28 +287,6 @@ mod tests {
     }
 
     #[test]
-    fn test_new() {
-        assert!(ExponentialMovingAverage::<f64>::new(0).is_err());
-        assert!(ExponentialMovingAverage::<f64>::new(1).is_ok());
-    }
-
-    #[test]
-    fn test_next() {
-        let mut ema = ExponentialMovingAverage::new(3).unwrap();
-
-        assert_eq!(ema.next(2.0), 2.0);
-        assert_eq!(ema.next(5.0), 3.5);
-        assert_eq!(ema.next(1.0), 2.25);
-        assert_eq!(ema.next(6.25), 4.25);
-
-        let mut ema = ExponentialMovingAverage::new(3).unwrap();
-        let bar1 = Bar::new().close(2);
-        let bar2 = Bar::new().close(5);
-        assert_eq!(ema.next(&bar1), 2.0);
-        assert_eq!(ema.next(&bar2), 3.5);
-    }
-
-    #[test]
     fn test_reset() {
         let mut ema = ExponentialMovingAverage::new(5).unwrap();
 
@@ -300,11 +298,6 @@ mod tests {
 
         ema.reset();
         assert_eq!(ema.next(4.0), 4.0);
-    }
-
-    #[test]
-    fn test_default() {
-        ExponentialMovingAverage::<f64>::default();
     }
 
     #[test]
