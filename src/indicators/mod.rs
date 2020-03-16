@@ -1,8 +1,8 @@
 mod exponential_moving_average;
 pub use self::exponential_moving_average::ExponentialMovingAverage;
 
-//mod simple_moving_average;
-//pub use self::simple_moving_average::SimpleMovingAverage;
+mod simple_moving_average;
+pub use self::simple_moving_average::SimpleMovingAverage;
 
 //mod standard_deviation;
 //pub use self::standard_deviation::StandardDeviation;
