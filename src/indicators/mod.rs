@@ -16,9 +16,9 @@ pub use self::minimum::Minimum;
 mod maximum;
 pub use self::maximum::Maximum;
 
-//mod fast_stochastic;
-//pub use self::fast_stochastic::FastStochastic;
-//
+mod fast_stochastic;
+pub use self::fast_stochastic::FastStochastic;
+
 //mod slow_stochastic;
 //pub use self::slow_stochastic::SlowStochastic;
 //
