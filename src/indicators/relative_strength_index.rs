@@ -172,8 +172,6 @@ mod tests {
     fn test_new() {
         assert!(RelativeStrengthIndex::<f64>::new(0).is_err());
         assert!(RelativeStrengthIndex::<f64>::new(1).is_ok());
-        assert!(RelativeStrengthIndex::<Decimal>::new(0).is_err());
-        assert!(RelativeStrengthIndex::<Decimal>::new(1).is_ok());
     }
 
     #[test]
@@ -183,27 +181,6 @@ mod tests {
         assert_eq!(rsi.next(10.5).round(), 86.0);
         assert_eq!(rsi.next(10.0).round(), 35.0);
         assert_eq!(rsi.next(9.5).round(), 16.0);
-
-        let mut rsi = RelativeStrengthIndex::<Decimal>::new(3).unwrap();
-        assert_eq!(
-            rsi.next(&DecimalStructure::new(Decimal::new(10, 0))),
-            Decimal::new(50, 0)
-        );
-        assert_eq!(
-            rsi.next(&DecimalStructure::new(Decimal::new(105, 1)))
-                .round(),
-            Decimal::new(86, 0)
-        );
-        assert_eq!(
-            rsi.next(&DecimalStructure::new(Decimal::new(10, 0)))
-                .round(),
-            Decimal::new(35, 0)
-        );
-        assert_eq!(
-            rsi.next(&DecimalStructure::new(Decimal::new(95, 1)))
-                .round(),
-            Decimal::new(16, 0)
-        );
     }
 
     #[test]
@@ -215,41 +192,16 @@ mod tests {
         rsi.reset();
         assert_eq!(rsi.next(10.0).round(), 50.0);
         assert_eq!(rsi.next(10.5).round(), 86.0);
-
-        let mut rsi = RelativeStrengthIndex::<Decimal>::new(3).unwrap();
-        assert_eq!(
-            rsi.next(&DecimalStructure::new(Decimal::new(10, 0))),
-            Decimal::new(50, 0)
-        );
-        assert_eq!(
-            rsi.next(&DecimalStructure::new(Decimal::new(105, 1)))
-                .round(),
-            Decimal::new(86, 0)
-        );
-
-        rsi.reset();
-        assert_eq!(
-            rsi.next(&DecimalStructure::new(Decimal::new(10, 0))),
-            Decimal::new(50, 0)
-        );
-        assert_eq!(
-            rsi.next(&DecimalStructure::new(Decimal::new(105, 1)))
-                .round(),
-            Decimal::new(86, 0)
-        );
     }
 
     #[test]
     fn test_default() {
         RelativeStrengthIndex::<f64>::default();
-        RelativeStrengthIndex::<Decimal>::default();
     }
 
     #[test]
     fn test_display() {
         let rsi = RelativeStrengthIndex::<f64>::new(16).unwrap();
-        assert_eq!(format!("{}", rsi), "RSI(16)");
-        let rsi = RelativeStrengthIndex::<Decimal>::new(16).unwrap();
         assert_eq!(format!("{}", rsi), "RSI(16)");
     }
 }

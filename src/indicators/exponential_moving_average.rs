@@ -153,7 +153,7 @@ mod tests {
     }
 
     #[test]
-    fn test_next_basic_simple() {
+    fn test_next() {
         let mut ema = ExponentialMovingAverage::new(3).unwrap();
 
         assert_eq!(ema.next(2.0), 2.0);
@@ -166,60 +166,6 @@ mod tests {
         let bar2 = Bar::new().close(5);
         assert_eq!(ema.next(&bar1), 2.0);
         assert_eq!(ema.next(&bar2), 3.5);
-    }
-
-    #[test]
-    fn test_next_with_generic_structure() {
-        let mut ema = ExponentialMovingAverage::<Decimal>::new(3).unwrap();
-
-        assert_eq!(
-            ema.next(&GenericStructure::<Decimal>::new(Decimal::new(2, 0))),
-            Decimal::new(2, 0)
-        );
-        assert_eq!(
-            ema.next(&GenericStructure::<Decimal>::new(Decimal::new(5, 0))),
-            Decimal::new(35, 1)
-        );
-        assert_eq!(
-            ema.next(&GenericStructure::<Decimal>::new(Decimal::new(1, 0))),
-            Decimal::new(225, 2)
-        );
-        assert_eq!(
-            ema.next(&GenericStructure::<Decimal>::new(Decimal::new(625, 2))),
-            Decimal::new(425, 2)
-        );
-    }
-
-    #[test]
-    fn test_next_with_f64_structure() {
-        let mut ema = ExponentialMovingAverage::<f64>::new(3).unwrap();
-
-        assert_eq!(ema.next(&F64Structure::new(2.0)), 2.0);
-        assert_eq!(ema.next(&F64Structure::new(5.0)), 3.5);
-        assert_eq!(ema.next(&F64Structure::new(1.0)), 2.25);
-        assert_eq!(ema.next(&F64Structure::new(6.25)), 4.25);
-    }
-
-    #[test]
-    fn test_next_structure() {
-        let mut ema = ExponentialMovingAverage::<Decimal>::new(3).unwrap();
-
-        assert_eq!(
-            ema.next(&DecimalStructure::new(Decimal::new(2, 0))),
-            Decimal::new(2, 0)
-        );
-        assert_eq!(
-            ema.next(&DecimalStructure::new(Decimal::new(5, 0))),
-            Decimal::new(35, 1)
-        );
-        assert_eq!(
-            ema.next(&DecimalStructure::new(Decimal::new(1, 0))),
-            Decimal::new(225, 2)
-        );
-        assert_eq!(
-            ema.next(&DecimalStructure::new(Decimal::new(625, 2))),
-            Decimal::new(425, 2)
-        );
     }
 
     #[test]

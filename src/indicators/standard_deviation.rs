@@ -185,8 +185,6 @@ mod tests {
     fn test_new() {
         assert!(StandardDeviation::<f64>::new(0).is_err());
         assert!(StandardDeviation::<f64>::new(1).is_ok());
-        assert!(StandardDeviation::<Decimal>::new(0).is_err());
-        assert!(StandardDeviation::<Decimal>::new(1).is_ok());
     }
 
     #[test]
@@ -198,29 +196,6 @@ mod tests {
         assert_eq!(round(sd.next(20.0)), 7.071);
         assert_eq!(round(sd.next(10.0)), 7.071);
         assert_eq!(round(sd.next(100.0)), 35.355);
-    }
-
-    #[test]
-    fn test_next_decimal() {
-        let mut sd = StandardDeviation::<Decimal>::new(4).unwrap();
-        assert_eq!(sd.next(Decimal::new(10, 0)), Decimal::new(0, 0));
-        assert_eq!(sd.next(Decimal::new(20, 0)), Decimal::new(5, 0));
-        assert_eq!(
-            Decimal::round_dp(&sd.next(Decimal::new(30, 0)), 3),
-            Decimal::new(8165, 3)
-        );
-        assert_eq!(
-            Decimal::round_dp(&sd.next(Decimal::new(20, 0)), 3),
-            Decimal::new(7071, 3)
-        );
-        assert_eq!(
-            Decimal::round_dp(&sd.next(Decimal::new(10, 0)), 3),
-            Decimal::new(7071, 3)
-        );
-        assert_eq!(
-            Decimal::round_dp(&sd.next(Decimal::new(100, 0)), 3),
-            Decimal::new(35355, 3)
-        );
     }
 
     #[test]
@@ -239,62 +214,6 @@ mod tests {
     }
 
     #[test]
-    fn test_next_with_decimal() {
-        let mut sd = StandardDeviation::<Decimal>::new(4).unwrap();
-        assert_eq!(
-            sd.next(&DecimalStructure::new(Decimal::new(10, 0))),
-            Decimal::new(0, 0)
-        );
-        assert_eq!(
-            sd.next(&DecimalStructure::new(Decimal::new(20, 0))),
-            Decimal::new(5, 0)
-        );
-        assert_eq!(
-            Decimal::round_dp(&sd.next(&DecimalStructure::new(Decimal::new(30, 0))), 3),
-            Decimal::new(8165, 3)
-        );
-        assert_eq!(
-            Decimal::round_dp(&sd.next(&DecimalStructure::new(Decimal::new(20, 0))), 3),
-            Decimal::new(7071, 3)
-        );
-        assert_eq!(
-            Decimal::round_dp(&sd.next(&DecimalStructure::new(Decimal::new(10, 0))), 3),
-            Decimal::new(7071, 3)
-        );
-        assert_eq!(
-            Decimal::round_dp(&sd.next(&DecimalStructure::new(Decimal::new(100, 0))), 3),
-            Decimal::new(35355, 3)
-        );
-    }
-
-    #[test]
-    fn test_next_same_values() {
-        let mut sd = StandardDeviation::<f64>::new(3).unwrap();
-        assert_eq!(sd.next(4.2), 0.0);
-        assert_eq!(sd.next(4.2), 0.0);
-        assert_eq!(sd.next(4.2), 0.0);
-        assert_eq!(sd.next(4.2), 0.0);
-
-        let mut sd = StandardDeviation::<Decimal>::new(3).unwrap();
-        assert_eq!(
-            sd.next(&DecimalStructure::new(Decimal::new(42, 0))),
-            Decimal::new(0, 0)
-        );
-        assert_eq!(
-            sd.next(&DecimalStructure::new(Decimal::new(42, 0))),
-            Decimal::new(0, 0)
-        );
-        assert_eq!(
-            sd.next(&DecimalStructure::new(Decimal::new(42, 0))),
-            Decimal::new(0, 0)
-        );
-        assert_eq!(
-            sd.next(&DecimalStructure::new(Decimal::new(42, 0))),
-            Decimal::new(0, 0)
-        );
-    }
-
-    #[test]
     fn test_reset() {
         let mut sd = StandardDeviation::<f64>::new(4).unwrap();
         assert_eq!(sd.next(10.0), 0.0);
@@ -308,14 +227,11 @@ mod tests {
     #[test]
     fn test_default() {
         StandardDeviation::<f64>::default();
-        StandardDeviation::<Decimal>::default();
     }
 
     #[test]
     fn test_display() {
         let sd = StandardDeviation::<f64>::new(5).unwrap();
-        assert_eq!(format!("{}", sd), "SD(5)");
-        let sd = StandardDeviation::<Decimal>::new(5).unwrap();
         assert_eq!(format!("{}", sd), "SD(5)");
     }
 }
