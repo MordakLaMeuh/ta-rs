@@ -16,7 +16,7 @@ use crate::{High, Next, Reset};
 /// use ta::indicators::Maximum;
 /// use ta::Next;
 ///
-/// let mut max = Maximum::new(3).unwrap();
+/// let mut max = Maximum::<f64>::new(3).unwrap();
 /// assert_eq!(max.next(7.0), 7.0);
 /// assert_eq!(max.next(5.0), 7.0);
 /// assert_eq!(max.next(4.0), 7.0);

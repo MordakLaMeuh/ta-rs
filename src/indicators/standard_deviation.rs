@@ -28,7 +28,7 @@ use crate::{Close, Next, Reset};
 /// use ta::indicators::StandardDeviation;
 /// use ta::Next;
 ///
-/// let mut sd = StandardDeviation::new(3).unwrap();
+/// let mut sd = StandardDeviation::<f64>::new(3).unwrap();
 /// assert_eq!(sd.next(10.0), 0.0);
 /// assert_eq!(sd.next(20.0), 5.0);
 /// ```

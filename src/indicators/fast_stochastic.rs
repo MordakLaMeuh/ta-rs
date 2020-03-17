@@ -32,7 +32,7 @@ use crate::{Close, High, Low, Next, Reset};
 /// use ta::indicators::FastStochastic;
 /// use ta::Next;
 ///
-/// let mut stoch = FastStochastic::new(5).unwrap();
+/// let mut stoch = FastStochastic::<f64>::new(5).unwrap();
 /// assert_eq!(stoch.next(20.0), 50.0);
 /// assert_eq!(stoch.next(30.0), 100.0);
 /// assert_eq!(stoch.next(40.0), 100.0);
@@ -105,7 +105,10 @@ where
     }
 }
 
-impl<T> Reset for FastStochastic<T> {
+impl<T> Reset for FastStochastic<T>
+where
+    T: ArithmeticValues,
+{
     fn reset(&mut self) {
         self.minimum.reset();
         self.maximum.reset();

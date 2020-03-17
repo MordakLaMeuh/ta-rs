@@ -26,7 +26,7 @@ use crate::{Close, Next, Reset};
 /// use ta::indicators::SimpleMovingAverage;
 /// use ta::Next;
 ///
-/// let mut sma = SimpleMovingAverage::new(3).unwrap();
+/// let mut sma = SimpleMovingAverage::<f64>::new(3).unwrap();
 /// assert_eq!(sma.next(10.0), 10.0);
 /// assert_eq!(sma.next(11.0), 10.5);
 /// assert_eq!(sma.next(12.0), 11.0);

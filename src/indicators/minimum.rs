@@ -16,7 +16,7 @@ use crate::{Low, Next, Reset};
 /// use ta::indicators::Minimum;
 /// use ta::Next;
 ///
-/// let mut min = Minimum::new(3).unwrap();
+/// let mut min = Minimum::<f64>::new(3).unwrap();
 /// assert_eq!(min.next(10.0), 10.0);
 /// assert_eq!(min.next(11.0), 10.0);
 /// assert_eq!(min.next(12.0), 10.0);
