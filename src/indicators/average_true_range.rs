@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::errors::*;
 use crate::indicators::{ExponentialMovingAverage, TrueRange};
+use crate::{ArithmeticCompare, ArithmeticOps, ArithmeticValues};
 use crate::{Close, High, Low, Next, Reset};
 
 /// Average true range (ATR).
@@ -40,7 +41,7 @@ use crate::{Close, High, Low, Next, Reset};
 ///         (10.1  , 10.7, 9.4, 9.7  , 1.125),  // tr = high - low = 10.7 - 9.4 = 1.3
 ///         (9.1   , 9.2 , 8.1, 8.4  , 1.3625), // tr = prev_close - low = 9.7 - 8.1 = 1.6
 ///     ];
-///     let mut indicator = AverageTrueRange::new(3).unwrap();
+///     let mut indicator = AverageTrueRange::<f64>::new(3).unwrap();
 ///
 ///     for (open, high, low, close, atr) in data {
 ///         let di = DataItem::builder()
@@ -54,51 +55,70 @@ use crate::{Close, High, Low, Next, Reset};
 ///     }
 /// }
 #[derive(Debug, Clone)]
-pub struct AverageTrueRange {
-    true_range: TrueRange,
-    ema: ExponentialMovingAverage,
+pub struct AverageTrueRange<T> {
+    true_range: TrueRange<T>,
+    ema: ExponentialMovingAverage<T>,
 }
 
-impl AverageTrueRange {
+impl<T> AverageTrueRange<T>
+where
+    T: ArithmeticOps + ArithmeticValues,
+{
     pub fn new(length: u32) -> Result<Self> {
         let indicator = Self {
-            true_range: TrueRange::new(),
-            ema: ExponentialMovingAverage::new(length)?,
+            true_range: TrueRange::<T>::new(),
+            ema: ExponentialMovingAverage::<T>::new(length)?,
         };
         Ok(indicator)
     }
 }
 
-impl Next<f64> for AverageTrueRange {
-    type Output = f64;
+impl<T> Next<T, !> for AverageTrueRange<T>
+where
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
+    type Output = T;
 
-    fn next(&mut self, input: f64) -> Self::Output {
+    fn next(&mut self, input: T) -> Self::Output {
         self.ema.next(self.true_range.next(input))
     }
 }
 
-impl<'a, T: High + Low + Close> Next<&'a T> for AverageTrueRange {
-    type Output = f64;
+impl<'a, U, T> Next<&'a U, T> for AverageTrueRange<T>
+where
+    U: High<T> + Low<T> + Close<T>,
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
+    type Output = T;
 
-    fn next(&mut self, input: &'a T) -> Self::Output {
+    fn next(&mut self, input: &'a U) -> Self::Output {
         self.ema.next(self.true_range.next(input))
     }
 }
 
-impl Reset for AverageTrueRange {
+impl<T> Reset for AverageTrueRange<T>
+where
+    T: ArithmeticValues,
+{
     fn reset(&mut self) {
         self.true_range.reset();
         self.ema.reset();
     }
 }
 
-impl Default for AverageTrueRange {
+impl<T> Default for AverageTrueRange<T>
+where
+    T: ArithmeticOps + ArithmeticValues,
+{
     fn default() -> Self {
         Self::new(14).unwrap()
     }
 }
 
-impl fmt::Display for AverageTrueRange {
+impl<T> fmt::Display for AverageTrueRange<T>
+where
+    T: ArithmeticOps + ArithmeticValues,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ATR({})", self.ema.length())
     }
@@ -113,12 +133,12 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(AverageTrueRange::new(0).is_err());
-        assert!(AverageTrueRange::new(1).is_ok());
+        assert!(AverageTrueRange::<f64>::new(0).is_err());
+        assert!(AverageTrueRange::<f64>::new(1).is_ok());
     }
     #[test]
     fn test_next() {
-        let mut atr = AverageTrueRange::new(3).unwrap();
+        let mut atr = AverageTrueRange::<f64>::new(3).unwrap();
 
         let bar1 = Bar::new().high(10).low(7.5).close(9);
         let bar2 = Bar::new().high(11).low(9).close(9.5);
@@ -131,7 +151,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut atr = AverageTrueRange::new(9).unwrap();
+        let mut atr = AverageTrueRange::<f64>::new(9).unwrap();
 
         let bar1 = Bar::new().high(10).low(7.5).close(9);
         let bar2 = Bar::new().high(11).low(9).close(9.5);
@@ -146,12 +166,12 @@ mod tests {
 
     #[test]
     fn test_default() {
-        AverageTrueRange::default();
+        AverageTrueRange::<f64>::default();
     }
 
     #[test]
     fn test_display() {
-        let indicator = AverageTrueRange::new(8).unwrap();
+        let indicator = AverageTrueRange::<f64>::new(8).unwrap();
         assert_eq!(format!("{}", indicator), "ATR(8)");
     }
 }
