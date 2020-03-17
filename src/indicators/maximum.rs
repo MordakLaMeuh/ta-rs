@@ -1,7 +1,7 @@
-use std::f64::INFINITY;
 use std::fmt;
 
 use crate::errors::*;
+use crate::{ArithmeticCompare, ArithmeticOps, ArithmeticValues};
 use crate::{High, Next, Reset};
 
 /// Returns the highest value in a given time frame.
@@ -24,14 +24,16 @@ use crate::{High, Next, Reset};
 /// assert_eq!(max.next(8.0), 8.0);
 /// ```
 #[derive(Debug, Clone)]
-pub struct Maximum {
-    n: usize,
-    vec: Vec<f64>,
+pub struct Maximum<T> {
+    vec: Vec<Option<T>>,
     max_index: usize,
     cur_index: usize,
 }
 
-impl Maximum {
+impl<T> Maximum<T>
+where
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
     pub fn new(n: u32) -> Result<Self> {
         let n = n as usize;
 
@@ -40,71 +42,90 @@ impl Maximum {
         }
 
         let indicator = Self {
-            n: n,
-            vec: vec![-INFINITY; n],
+            vec: vec![None; n],
             max_index: 0,
             cur_index: 0,
         };
         Ok(indicator)
     }
 
-    fn find_max_index(&self) -> usize {
-        let mut max = -INFINITY;
-        let mut index: usize = 0;
+    fn find_max_index(&self) -> Option<usize> {
+        let mut max_value: Option<T> = None;
+        let mut max_index: Option<usize> = None;
 
-        for (i, &val) in self.vec.iter().enumerate() {
-            if val > max {
-                max = val;
-                index = i;
+        for (i, val) in self.vec.iter().enumerate() {
+            if let Some(value) = val {
+                match max_index {
+                    Some(_) => {
+                        if *value > max_value.expect("cannot happened") {
+                            max_index = Some(i);
+                            max_value = *val;
+                        }
+                    }
+                    None => {
+                        max_index = Some(i);
+                        max_value = *val;
+                    }
+                }
             }
         }
-
-        index
+        max_index
     }
 }
 
-impl Next<f64> for Maximum {
-    type Output = f64;
+impl<T> Next<T, !> for Maximum<T>
+where
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
+    type Output = T;
 
-    fn next(&mut self, input: f64) -> Self::Output {
-        self.cur_index = (self.cur_index + 1) % (self.n as usize);
-        self.vec[self.cur_index] = input;
+    fn next(&mut self, input: T) -> Self::Output {
+        self.cur_index = (self.cur_index + 1) % self.vec.len();
+        self.vec[self.cur_index] = Some(input);
 
-        if input > self.vec[self.max_index] {
-            self.max_index = self.cur_index;
-        } else if self.max_index == self.cur_index {
-            self.max_index = self.find_max_index();
+        if let Some(max_value) = self.vec[self.max_index] {
+            if input > max_value {
+                self.max_index = self.cur_index;
+                return self.vec[self.max_index].expect("Cannot happened");
+            }
         }
-
-        self.vec[self.max_index]
+        self.max_index = self.find_max_index().expect("Cannot happened");
+        self.vec[self.max_index].expect("Cannot happened")
     }
 }
 
-impl<'a, T: High> Next<&'a T> for Maximum {
-    type Output = f64;
+impl<'a, U, T> Next<&'a U, T> for Maximum<T>
+where
+    U: High<T>,
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
+    type Output = T;
 
-    fn next(&mut self, input: &'a T) -> Self::Output {
+    fn next(&mut self, input: &'a U) -> Self::Output {
         self.next(input.high())
     }
 }
 
-impl Reset for Maximum {
+impl<T> Reset for Maximum<T> {
     fn reset(&mut self) {
-        for i in 0..self.n {
-            self.vec[i] = -INFINITY;
+        for elmt in self.vec.iter_mut() {
+            *elmt = None;
         }
     }
 }
 
-impl Default for Maximum {
+impl<T> Default for Maximum<T>
+where
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
     fn default() -> Self {
         Self::new(14).unwrap()
     }
 }
 
-impl fmt::Display for Maximum {
+impl<T> fmt::Display for Maximum<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "MAX({})", self.n)
+        write!(f, "MAX({})", self.vec.len())
     }
 }
 
@@ -117,13 +138,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(Maximum::new(0).is_err());
-        assert!(Maximum::new(1).is_ok());
+        assert!(Maximum::<f64>::new(0).is_err());
+        assert!(Maximum::<f64>::new(1).is_ok());
     }
 
     #[test]
     fn test_next() {
-        let mut max = Maximum::new(3).unwrap();
+        let mut max = Maximum::<f64>::new(3).unwrap();
 
         assert_eq!(max.next(4.0), 4.0);
         assert_eq!(max.next(1.2), 4.0);
@@ -142,7 +163,7 @@ mod tests {
             Bar::new().high(high)
         }
 
-        let mut max = Maximum::new(2).unwrap();
+        let mut max = Maximum::<f64>::new(2).unwrap();
 
         assert_eq!(max.next(&bar(1.1)), 1.1);
         assert_eq!(max.next(&bar(4.0)), 4.0);
@@ -152,7 +173,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut max = Maximum::new(100).unwrap();
+        let mut max = Maximum::<f64>::new(100).unwrap();
         assert_eq!(max.next(4.0), 4.0);
         assert_eq!(max.next(10.0), 10.0);
         assert_eq!(max.next(4.0), 10.0);
@@ -163,12 +184,12 @@ mod tests {
 
     #[test]
     fn test_default() {
-        Maximum::default();
+        Maximum::<f64>::default();
     }
 
     #[test]
     fn test_display() {
-        let indicator = Maximum::new(7).unwrap();
+        let indicator = Maximum::<f64>::new(7).unwrap();
         assert_eq!(format!("{}", indicator), "MAX(7)");
     }
 }
