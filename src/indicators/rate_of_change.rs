@@ -3,6 +3,7 @@ use std::fmt;
 
 use crate::errors::*;
 use crate::traits::{Close, Next, Reset};
+use crate::ArithmeticType;
 
 /// Rate of Change (ROC)
 ///
@@ -26,7 +27,7 @@ use crate::traits::{Close, Next, Reset};
 /// use ta::indicators::RateOfChange;
 /// use ta::Next;
 ///
-/// let mut roc = RateOfChange::new(2).unwrap();
+/// let mut roc = RateOfChange::<f64>::new(2).unwrap();
 /// assert_eq!(roc.next(10.0), 0.0);            //  0
 /// assert_eq!(roc.next(9.7).round(), -3.0);    //  (9.7 - 10) / 10  * 100 = -3
 /// assert_eq!(roc.next(20.0).round(), 100.0);  //  (20 - 10)  / 10  * 100 = 100
@@ -38,12 +39,15 @@ use crate::traits::{Close, Next, Reset};
 /// * [Rate of Change, Wikipedia](https://en.wikipedia.org/wiki/Momentum_(technical_analysis))
 ///
 #[derive(Debug, Clone)]
-pub struct RateOfChange {
+pub struct RateOfChange<T> {
     length: u32,
-    prices: VecDeque<f64>,
+    prices: VecDeque<T>,
 }
 
-impl RateOfChange {
+impl<T> RateOfChange<T>
+where
+    T: ArithmeticType,
+{
     pub fn new(length: u32) -> Result<Self> {
         match length {
             0 => Err(Error::from_kind(ErrorKind::InvalidParameter)),
@@ -58,14 +62,17 @@ impl RateOfChange {
     }
 }
 
-impl Next<f64> for RateOfChange {
-    type Output = f64;
+impl<T> Next<T, !> for RateOfChange<T>
+where
+    T: Copy + ArithmeticType,
+{
+    type Output = T;
 
-    fn next(&mut self, input: f64) -> f64 {
+    fn next(&mut self, input: T) -> Self::Output {
         self.prices.push_back(input);
 
         if self.prices.len() == 1 {
-            return 0.0;
+            return T::zero();
         }
 
         let initial_price = if self.prices.len() > (self.length as usize) {
@@ -76,31 +83,41 @@ impl Next<f64> for RateOfChange {
             self.prices[0]
         };
 
-        (input - initial_price) / initial_price * 100.0
+        (input - initial_price) / initial_price * T::from_u32(100).expect("Woot ?")
     }
 }
 
-impl<'a, T: Close> Next<&'a T> for RateOfChange {
-    type Output = f64;
+impl<'a, U, T> Next<&'a U, T> for RateOfChange<T>
+where
+    U: Close<T>,
+    T: Copy + ArithmeticType,
+{
+    type Output = T;
 
-    fn next(&mut self, input: &'a T) -> f64 {
+    fn next(&mut self, input: &'a U) -> T {
         self.next(input.close())
     }
 }
 
-impl Default for RateOfChange {
+impl<T> Default for RateOfChange<T>
+where
+    T: ArithmeticType,
+{
     fn default() -> Self {
         Self::new(9).unwrap()
     }
 }
 
-impl fmt::Display for RateOfChange {
+impl<T> fmt::Display for RateOfChange<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ROC({})", self.length)
     }
 }
 
-impl Reset for RateOfChange {
+impl<T> Reset for RateOfChange<T>
+where
+    T: ArithmeticType,
+{
     fn reset(&mut self) {
         self.prices.clear();
     }
@@ -115,14 +132,14 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(RateOfChange::new(0).is_err());
-        assert!(RateOfChange::new(1).is_ok());
-        assert!(RateOfChange::new(100_000).is_ok());
+        assert!(RateOfChange::<f64>::new(0).is_err());
+        assert!(RateOfChange::<f64>::new(1).is_ok());
+        assert!(RateOfChange::<f64>::new(100_000).is_ok());
     }
 
     #[test]
     fn test_next_f64() {
-        let mut roc = RateOfChange::new(3).unwrap();
+        let mut roc = RateOfChange::<f64>::new(3).unwrap();
 
         assert_eq!(round(roc.next(10.0)), 0.0);
         assert_eq!(round(roc.next(10.4)), 4.0);
@@ -138,7 +155,7 @@ mod tests {
             Bar::new().close(close)
         }
 
-        let mut roc = RateOfChange::new(3).unwrap();
+        let mut roc = RateOfChange::<f64>::new(3).unwrap();
 
         assert_eq!(round(roc.next(&bar(10.0))), 0.0);
         assert_eq!(round(roc.next(&bar(10.4))), 4.0);
@@ -147,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut roc = RateOfChange::new(3).unwrap();
+        let mut roc = RateOfChange::<f64>::new(3).unwrap();
 
         roc.next(12.3);
         roc.next(15.0);

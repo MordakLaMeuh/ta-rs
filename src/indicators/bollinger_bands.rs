@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::errors::*;
 use crate::indicators::StandardDeviation as Sd;
+use crate::ArithmeticType;
 use crate::{Close, Next, Reset};
 
 /// A Bollinger Bands (BB).
@@ -25,7 +26,7 @@ use crate::{Close, Next, Reset};
 /// use ta::indicators::{BollingerBands, BollingerBandsOutput};
 /// use ta::Next;
 ///
-/// let mut bb = BollingerBands::new(3, 2.0_f64).unwrap();
+/// let mut bb = BollingerBands::<f64>::new(3, 2.0_f64).unwrap();
 ///
 /// let out_0 = bb.next(2.0);
 ///
@@ -44,22 +45,25 @@ use crate::{Close, Next, Reset};
 ///
 /// ![Bollinger Bands, Wikipedia](https://en.wikipedia.org/wiki/Bollinger_Bands)
 #[derive(Debug, Clone)]
-pub struct BollingerBands {
+pub struct BollingerBands<T> {
     length: u32,
-    multiplier: f64,
-    sd: Sd,
+    multiplier: T,
+    sd: Sd<T>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct BollingerBandsOutput {
-    pub average: f64,
-    pub upper: f64,
-    pub lower: f64,
+pub struct BollingerBandsOutput<T> {
+    pub average: T,
+    pub upper: T,
+    pub lower: T,
 }
 
-impl BollingerBands {
-    pub fn new(length: u32, multiplier: f64) -> Result<Self> {
-        if multiplier <= 0.0 {
+impl<T> BollingerBands<T>
+where
+    T: Copy + ArithmeticType,
+{
+    pub fn new(length: u32, multiplier: T) -> Result<Self> {
+        if multiplier <= T::zero() {
             return Err(Error::from_kind(ErrorKind::InvalidParameter));
         }
         Ok(Self {
@@ -73,15 +77,18 @@ impl BollingerBands {
         self.length
     }
 
-    pub fn multiplier(&self) -> f64 {
+    pub fn multiplier(&self) -> T {
         self.multiplier
     }
 }
 
-impl Next<f64> for BollingerBands {
-    type Output = BollingerBandsOutput;
+impl<T> Next<T, !> for BollingerBands<T>
+where
+    T: Copy + ArithmeticType,
+{
+    type Output = BollingerBandsOutput<T>;
 
-    fn next(&mut self, input: f64) -> Self::Output {
+    fn next(&mut self, input: T) -> Self::Output {
         let sd = self.sd.next(input);
         let mean = self.sd.mean();
 
@@ -93,27 +100,40 @@ impl Next<f64> for BollingerBands {
     }
 }
 
-impl<'a, T: Close> Next<&'a T> for BollingerBands {
-    type Output = BollingerBandsOutput;
+impl<'a, U, T> Next<&'a U, T> for BollingerBands<T>
+where
+    U: Close<T>,
+    T: Copy + ArithmeticType,
+{
+    type Output = BollingerBandsOutput<T>;
 
-    fn next(&mut self, input: &'a T) -> Self::Output {
+    fn next(&mut self, input: &'a U) -> Self::Output {
         self.next(input.close())
     }
 }
 
-impl Reset for BollingerBands {
+impl<T> Reset for BollingerBands<T>
+where
+    T: ArithmeticType,
+{
     fn reset(&mut self) {
         self.sd.reset();
     }
 }
 
-impl Default for BollingerBands {
+impl<T> Default for BollingerBands<T>
+where
+    T: Copy + ArithmeticType,
+{
     fn default() -> Self {
-        Self::new(9, 2_f64).unwrap()
+        Self::new(9, T::from_u32(2).expect("Woot ?")).unwrap()
     }
 }
 
-impl fmt::Display for BollingerBands {
+impl<T> fmt::Display for BollingerBands<T>
+where
+    T: fmt::Display + ArithmeticType,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "BB({}, {})", self.length, self.multiplier)
     }
@@ -128,14 +148,14 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(BollingerBands::new(0, 2_f64).is_err());
-        assert!(BollingerBands::new(1, 2_f64).is_ok());
-        assert!(BollingerBands::new(2, 2_f64).is_ok());
+        assert!(BollingerBands::<f64>::new(0, 2_f64).is_err());
+        assert!(BollingerBands::<f64>::new(1, 2_f64).is_ok());
+        assert!(BollingerBands::<f64>::new(2, 2_f64).is_ok());
     }
 
     #[test]
     fn test_next() {
-        let mut bb = BollingerBands::new(3, 2.0_f64).unwrap();
+        let mut bb = BollingerBands::<f64>::new(3, 2.0_f64).unwrap();
 
         let a = bb.next(2.0);
         let b = bb.next(5.0);
@@ -160,7 +180,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut bb = BollingerBands::new(5, 2.0_f64).unwrap();
+        let mut bb = BollingerBands::<f64>::new(5, 2.0_f64).unwrap();
 
         let out = bb.next(3.0);
 
@@ -187,12 +207,12 @@ mod tests {
 
     #[test]
     fn test_default() {
-        BollingerBands::default();
+        BollingerBands::<f64>::default();
     }
 
     #[test]
     fn test_display() {
-        let bb = BollingerBands::new(10, 3.0_f64).unwrap();
+        let bb = BollingerBands::<f64>::new(10, 3.0_f64).unwrap();
         assert_eq!(format!("{}", bb), "BB(10, 3)");
     }
 }

@@ -28,20 +28,20 @@ pub use self::true_range::TrueRange;
 mod average_true_range;
 pub use self::average_true_range::AverageTrueRange;
 
-//mod moving_average_convergence_divergence;
-//pub use self::moving_average_convergence_divergence::MovingAverageConvergenceDivergence;
-//
-//mod efficiency_ratio;
-//pub use self::efficiency_ratio::EfficiencyRatio;
-//
-//mod bollinger_bands;
-//pub use self::bollinger_bands::{BollingerBands, BollingerBandsOutput};
-//
-//mod rate_of_change;
-//pub use self::rate_of_change::RateOfChange;
-//
-//mod money_flow_index;
-//pub use self::money_flow_index::MoneyFlowIndex;
-//
-//mod on_balance_volume;
-//pub use self::on_balance_volume::OnBalanceVolume;
+mod moving_average_convergence_divergence;
+pub use self::moving_average_convergence_divergence::MovingAverageConvergenceDivergence;
+
+mod efficiency_ratio;
+pub use self::efficiency_ratio::EfficiencyRatio;
+
+mod bollinger_bands;
+pub use self::bollinger_bands::{BollingerBands, BollingerBandsOutput};
+
+mod rate_of_change;
+pub use self::rate_of_change::RateOfChange;
+
+mod money_flow_index;
+pub use self::money_flow_index::MoneyFlowIndex;
+
+mod on_balance_volume;
+pub use self::on_balance_volume::OnBalanceVolume;

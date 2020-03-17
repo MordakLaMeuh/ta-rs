@@ -1,5 +1,6 @@
 use std::fmt;
 
+use crate::ArithmeticType;
 use crate::{Close, Next, Reset, Volume};
 
 /// On Balance Volume (OBV).
@@ -29,7 +30,7 @@ use crate::{Close, Next, Reset, Volume};
 /// use ta::indicators::OnBalanceVolume;
 /// use ta::{Next, DataItem};
 ///
-/// let mut obv = OnBalanceVolume::new();
+/// let mut obv = OnBalanceVolume::<f64>::new();
 ///
 /// let di1 = DataItem::builder()
 ///             .high(3.0)
@@ -57,24 +58,31 @@ use crate::{Close, Next, Reset, Volume};
 /// * [On Balance Volume, stockcharts](https://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:on_balance_volume_obv)
 
 #[derive(Debug, Clone)]
-pub struct OnBalanceVolume {
-    obv: f64,
-    prev_close: f64,
+pub struct OnBalanceVolume<T> {
+    obv: T,
+    prev_close: T,
 }
 
-impl OnBalanceVolume {
+impl<T> OnBalanceVolume<T>
+where
+    T: ArithmeticType,
+{
     pub fn new() -> Self {
         Self {
-            obv: 0.0,
-            prev_close: 0.0,
+            obv: T::zero(),
+            prev_close: T::zero(),
         }
     }
 }
 
-impl<'a, T: Close + Volume> Next<&'a T> for OnBalanceVolume {
-    type Output = f64;
+impl<'a, U, T> Next<&'a U, T> for OnBalanceVolume<T>
+where
+    U: Close<T> + Volume<T>,
+    T: Copy + ArithmeticType,
+{
+    type Output = T;
 
-    fn next(&mut self, input: &'a T) -> f64 {
+    fn next(&mut self, input: &'a U) -> T {
         if input.close() > self.prev_close {
             self.obv = self.obv + input.volume();
         } else if input.close() < self.prev_close {
@@ -85,22 +93,28 @@ impl<'a, T: Close + Volume> Next<&'a T> for OnBalanceVolume {
     }
 }
 
-impl Default for OnBalanceVolume {
+impl<T> Default for OnBalanceVolume<T>
+where
+    T: ArithmeticType,
+{
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl fmt::Display for OnBalanceVolume {
+impl<T> fmt::Display for OnBalanceVolume<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "OBV")
     }
 }
 
-impl Reset for OnBalanceVolume {
+impl<T> Reset for OnBalanceVolume<T>
+where
+    T: ArithmeticType,
+{
     fn reset(&mut self) {
-        self.obv = 0.0;
-        self.prev_close = 0.0;
+        self.obv = T::zero();
+        self.prev_close = T::zero();
     }
 }
 
@@ -111,7 +125,7 @@ mod tests {
 
     #[test]
     fn test_next_bar() {
-        let mut obv = OnBalanceVolume::new();
+        let mut obv = OnBalanceVolume::<f64>::new();
 
         let bar1 = Bar::new().close(1.5).volume(1000.0);
         let bar2 = Bar::new().close(5).volume(5000.0);
@@ -132,7 +146,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut obv = OnBalanceVolume::new();
+        let mut obv = OnBalanceVolume::<f64>::new();
 
         let bar1 = Bar::new().close(1.5).volume(1000.0);
         let bar2 = Bar::new().close(4).volume(2000.0);
@@ -151,13 +165,12 @@ mod tests {
 
     #[test]
     fn test_default() {
-        OnBalanceVolume::default();
+        OnBalanceVolume::<f64>::default();
     }
 
     #[test]
     fn test_display() {
-        let obv = OnBalanceVolume::new();
+        let obv = OnBalanceVolume::<f64>::new();
         assert_eq!(format!("{}", obv), "OBV");
     }
-
 }
