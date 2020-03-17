@@ -7,6 +7,16 @@ use num_traits::sign::Signed;
 use std::ops::{Add, Div, Mul, Sub};
 use std::ops::{AddAssign, DivAssign, MulAssign, SubAssign};
 
+/// global algebraic trait
+pub trait ArithmeticType: ArithmeticOps + ArithmeticValues + ArithmeticCompare
+where
+    Self: std::marker::Sized,
+{
+}
+
+impl<T> ArithmeticType for T where T: ArithmeticOps + ArithmeticValues + ArithmeticCompare {}
+
+/// common algebraic operations
 pub trait ArithmeticOps:
     Add<Output = Self>
     + Sub<Output = Self>
@@ -23,6 +33,7 @@ where
     // but in this case we don't need any more.
 }
 
+/// algebraic compare
 impl<T> ArithmeticOps for T
 where
     T: Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T>,
@@ -38,6 +49,7 @@ where
     // but in this case we don't need any more.
 }
 
+/// fixed algebraic values
 impl<T> ArithmeticValues for T where T: Zero + One + Signed + FromPrimitive {}
 
 pub trait ArithmeticCompare: PartialOrd + PartialEq

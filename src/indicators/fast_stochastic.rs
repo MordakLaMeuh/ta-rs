@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::errors::*;
 use crate::indicators::{Maximum, Minimum};
-use crate::{ArithmeticCompare, ArithmeticOps, ArithmeticValues};
+use crate::ArithmeticType;
 use crate::{Close, High, Low, Next, Reset};
 
 /// Fast stochastic oscillator.
@@ -48,7 +48,7 @@ pub struct FastStochastic<T> {
 
 impl<T> FastStochastic<T>
 where
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     pub fn new(length: u32) -> Result<Self> {
         let indicator = Self {
@@ -66,7 +66,7 @@ where
 
 impl<T> Next<T, !> for FastStochastic<T>
 where
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     type Output = T;
 
@@ -87,7 +87,7 @@ where
 impl<'a, U, T> Next<&'a U, T> for FastStochastic<T>
 where
     U: High<T> + Low<T> + Close<T>,
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     type Output = T;
 
@@ -107,7 +107,7 @@ where
 
 impl<T> Reset for FastStochastic<T>
 where
-    T: ArithmeticValues,
+    T: ArithmeticType,
 {
     fn reset(&mut self) {
         self.minimum.reset();
@@ -117,7 +117,7 @@ where
 
 impl<T> Default for FastStochastic<T>
 where
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     fn default() -> Self {
         Self::new(14).unwrap()

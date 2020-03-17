@@ -32,7 +32,7 @@ use crate::{Close, Next, Reset};
 /// use ta::indicators::MovingAverageConvergenceDivergence as Macd;
 /// use ta::Next;
 ///
-/// let mut macd = Macd::new(3, 6, 4).unwrap();
+/// let mut macd = Macd::<f64>::new(3, 6, 4).unwrap();
 ///
 /// assert_eq!(round(macd.next(2.0)), (0.0, 0.0, 0.0));
 /// assert_eq!(round(macd.next(3.0)), (0.21, 0.09, 0.13));

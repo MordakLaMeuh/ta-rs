@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::helpers::max3;
-use crate::{ArithmeticCompare, ArithmeticOps, ArithmeticValues};
+use crate::ArithmeticType;
 use crate::{Close, High, Low, Next, Reset};
 
 /// The range of a day's trading is simply _high_ - _low_.
@@ -73,7 +73,7 @@ impl<T> fmt::Display for TrueRange<T> {
 
 impl<T> Next<T, !> for TrueRange<T>
 where
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     type Output = T;
 
@@ -90,7 +90,7 @@ where
 impl<'a, U, T> Next<&'a U, T> for TrueRange<T>
 where
     U: High<T> + Low<T> + Close<T>,
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     type Output = T;
 

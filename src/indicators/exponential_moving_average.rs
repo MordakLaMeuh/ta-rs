@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::errors::*;
-use crate::{ArithmeticOps, ArithmeticValues};
+use crate::ArithmeticType;
 use crate::{Close, Next, Reset};
 
 /// An exponential moving average (EMA), also known as an exponentially weighted moving average
@@ -61,7 +61,7 @@ pub struct ExponentialMovingAverage<T> {
 
 impl<T> ExponentialMovingAverage<T>
 where
-    T: ArithmeticOps + ArithmeticValues,
+    T: ArithmeticType,
 {
     pub fn new(length: u32) -> Result<Self> {
         match length {
@@ -87,7 +87,7 @@ where
 
 impl<T> Next<T, !> for ExponentialMovingAverage<T>
 where
-    T: Copy + ArithmeticOps + ArithmeticValues,
+    T: Copy + ArithmeticType,
 {
     type Output = T;
 
@@ -105,7 +105,7 @@ where
 impl<'a, U, T> Next<&'a U, T> for ExponentialMovingAverage<T>
 where
     U: Close<T>,
-    T: Copy + ArithmeticOps + ArithmeticValues,
+    T: Copy + ArithmeticType,
 {
     type Output = T;
 
@@ -116,7 +116,7 @@ where
 
 impl<T> Reset for ExponentialMovingAverage<T>
 where
-    T: ArithmeticValues,
+    T: ArithmeticType,
 {
     fn reset(&mut self) {
         self.current = T::zero();
@@ -126,7 +126,7 @@ where
 
 impl<T> Default for ExponentialMovingAverage<T>
 where
-    T: ArithmeticOps + ArithmeticValues,
+    T: ArithmeticType,
 {
     fn default() -> Self {
         Self::new(9).unwrap()

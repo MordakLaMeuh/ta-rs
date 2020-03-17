@@ -1,7 +1,7 @@
 use std::fmt;
 
 use crate::errors::*;
-use crate::{ArithmeticCompare, ArithmeticOps, ArithmeticValues};
+use crate::ArithmeticType;
 use crate::{Close, Next, Reset};
 
 /// Standard deviation (SD).
@@ -49,7 +49,7 @@ pub struct StandardDeviation<T> {
 
 impl<T> StandardDeviation<T>
 where
-    T: Copy + ArithmeticOps + ArithmeticValues,
+    T: Copy + ArithmeticType,
 {
     pub fn new(n: u32) -> Result<Self> {
         match n {
@@ -77,7 +77,7 @@ where
 /// See http://villemin.gerard.free.fr/ThNbDemo/Heron.htm
 fn find_square_root<T>(seed: T, v: T, ttl: usize) -> T
 where
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     if ttl == 0 {
         seed
@@ -97,14 +97,14 @@ const TTL: usize = 32;
 
 fn sqrt<T>(v: T) -> T
 where
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     find_square_root(v, v, TTL)
 }
 
 impl<T> Next<T, !> for StandardDeviation<T>
 where
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     type Output = T;
 
@@ -135,7 +135,7 @@ where
 impl<'a, U, T> Next<&'a U, T> for StandardDeviation<T>
 where
     U: Close<T>,
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     type Output = T;
 
@@ -146,7 +146,7 @@ where
 
 impl<T> Reset for StandardDeviation<T>
 where
-    T: ArithmeticValues,
+    T: ArithmeticType,
 {
     fn reset(&mut self) {
         self.index = 0;
@@ -161,7 +161,7 @@ where
 
 impl<T> Default for StandardDeviation<T>
 where
-    T: Copy + ArithmeticOps + ArithmeticValues,
+    T: Copy + ArithmeticType,
 {
     fn default() -> Self {
         Self::new(9).unwrap()

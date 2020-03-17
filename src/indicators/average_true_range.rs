@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::errors::*;
 use crate::indicators::{ExponentialMovingAverage, TrueRange};
-use crate::{ArithmeticCompare, ArithmeticOps, ArithmeticValues};
+use crate::ArithmeticType;
 use crate::{Close, High, Low, Next, Reset};
 
 /// Average true range (ATR).
@@ -62,7 +62,7 @@ pub struct AverageTrueRange<T> {
 
 impl<T> AverageTrueRange<T>
 where
-    T: ArithmeticOps + ArithmeticValues,
+    T: ArithmeticType,
 {
     pub fn new(length: u32) -> Result<Self> {
         let indicator = Self {
@@ -75,7 +75,7 @@ where
 
 impl<T> Next<T, !> for AverageTrueRange<T>
 where
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     type Output = T;
 
@@ -87,7 +87,7 @@ where
 impl<'a, U, T> Next<&'a U, T> for AverageTrueRange<T>
 where
     U: High<T> + Low<T> + Close<T>,
-    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+    T: Copy + ArithmeticType,
 {
     type Output = T;
 
@@ -98,7 +98,7 @@ where
 
 impl<T> Reset for AverageTrueRange<T>
 where
-    T: ArithmeticValues,
+    T: ArithmeticType,
 {
     fn reset(&mut self) {
         self.true_range.reset();
@@ -108,7 +108,7 @@ where
 
 impl<T> Default for AverageTrueRange<T>
 where
-    T: ArithmeticOps + ArithmeticValues,
+    T: ArithmeticType,
 {
     fn default() -> Self {
         Self::new(14).unwrap()
@@ -117,7 +117,7 @@ where
 
 impl<T> fmt::Display for AverageTrueRange<T>
 where
-    T: ArithmeticOps + ArithmeticValues,
+    T: ArithmeticType,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ATR({})", self.ema.length())
