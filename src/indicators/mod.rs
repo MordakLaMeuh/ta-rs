@@ -22,9 +22,9 @@ pub use self::fast_stochastic::FastStochastic;
 mod slow_stochastic;
 pub use self::slow_stochastic::SlowStochastic;
 
-//mod true_range;
-//pub use self::true_range::TrueRange;
-//
+mod true_range;
+pub use self::true_range::TrueRange;
+
 //mod average_true_range;
 //pub use self::average_true_range::AverageTrueRange;
 //

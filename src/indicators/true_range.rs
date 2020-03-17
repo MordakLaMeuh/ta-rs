@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::helpers::max3;
+use crate::{ArithmeticCompare, ArithmeticOps, ArithmeticValues};
 use crate::{Close, High, Low, Next, Reset};
 
 /// The range of a day's trading is simply _high_ - _low_.
@@ -33,7 +34,7 @@ use crate::{Close, High, Low, Next, Reset};
 ///         (10.1  , 10.7, 9.4, 9.7  , 1.3),  // tr = high - low = 10.7 - 9.4 = 1.3
 ///         (9.1   , 9.2 , 8.1, 8.4  , 1.6),  // tr = prev_close - low = 9.7 - 8.1 = 1.6
 ///     ];
-///     let mut indicator = TrueRange::new();
+///     let mut indicator = TrueRange::<f64>::new();
 ///
 ///     for (open, high, low, close, tr) in data {
 ///         let di = DataItem::builder()
@@ -48,45 +49,52 @@ use crate::{Close, High, Low, Next, Reset};
 /// }
 /// ```
 #[derive(Debug, Clone)]
-pub struct TrueRange {
-    prev_close: Option<f64>,
+pub struct TrueRange<T> {
+    prev_close: Option<T>,
 }
 
-impl TrueRange {
+impl<T> TrueRange<T> {
     pub fn new() -> Self {
         Self { prev_close: None }
     }
 }
 
-impl Default for TrueRange {
+impl<T> Default for TrueRange<T> {
     fn default() -> Self {
         Self::new()
     }
 }
 
-impl fmt::Display for TrueRange {
+impl<T> fmt::Display for TrueRange<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "TRUE_RANGE()")
     }
 }
 
-impl Next<f64> for TrueRange {
-    type Output = f64;
+impl<T> Next<T, !> for TrueRange<T>
+where
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
+    type Output = T;
 
-    fn next(&mut self, input: f64) -> Self::Output {
+    fn next(&mut self, input: T) -> Self::Output {
         let distance = match self.prev_close {
             Some(prev) => (input - prev).abs(),
-            None => 0.0,
+            None => T::zero(),
         };
         self.prev_close = Some(input);
         distance
     }
 }
 
-impl<'a, T: High + Low + Close> Next<&'a T> for TrueRange {
-    type Output = f64;
+impl<'a, U, T> Next<&'a U, T> for TrueRange<T>
+where
+    U: High<T> + Low<T> + Close<T>,
+    T: Copy + ArithmeticOps + ArithmeticValues + ArithmeticCompare,
+{
+    type Output = T;
 
-    fn next(&mut self, bar: &'a T) -> Self::Output {
+    fn next(&mut self, bar: &'a U) -> Self::Output {
         let max_dist = match self.prev_close {
             Some(prev_close) => {
                 let dist1 = bar.high() - bar.low();
@@ -101,7 +109,7 @@ impl<'a, T: High + Low + Close> Next<&'a T> for TrueRange {
     }
 }
 
-impl Reset for TrueRange {
+impl<T> Reset for TrueRange<T> {
     fn reset(&mut self) {
         self.prev_close = None;
     }
@@ -116,7 +124,7 @@ mod tests {
 
     #[test]
     fn test_next_f64() {
-        let mut tr = TrueRange::new();
+        let mut tr = TrueRange::<f64>::new();
         assert_eq!(round(tr.next(2.5)), 0.0);
         assert_eq!(round(tr.next(3.6)), 1.1);
         assert_eq!(round(tr.next(3.3)), 0.3);
@@ -124,7 +132,7 @@ mod tests {
 
     #[test]
     fn test_next_bar() {
-        let mut tr = TrueRange::new();
+        let mut tr = TrueRange::<f64>::new();
 
         let bar1 = Bar::new().high(10).low(7.5).close(9);
         let bar2 = Bar::new().high(11).low(9).close(9.5);
@@ -137,7 +145,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut tr = TrueRange::new();
+        let mut tr = TrueRange::<f64>::new();
 
         let bar1 = Bar::new().high(10).low(7.5).close(9);
         let bar2 = Bar::new().high(11).low(9).close(9.5);
@@ -152,12 +160,12 @@ mod tests {
 
     #[test]
     fn test_default() {
-        TrueRange::default();
+        TrueRange::<f64>::default();
     }
 
     #[test]
     fn test_display() {
-        let indicator = TrueRange::new();
+        let indicator = TrueRange::<f64>::new();
         assert_eq!(format!("{}", indicator), "TRUE_RANGE()");
     }
 }

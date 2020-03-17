@@ -3,6 +3,7 @@
 
 use num_traits::cast::FromPrimitive;
 use num_traits::identities::{One, Zero};
+use num_traits::sign::Signed;
 use std::ops::{Add, Div, Mul, Sub};
 use std::ops::{AddAssign, DivAssign, MulAssign, SubAssign};
 
@@ -29,7 +30,7 @@ where
 {
 }
 
-pub trait ArithmeticValues: Zero + One + FromPrimitive
+pub trait ArithmeticValues: Zero + One + Signed + FromPrimitive
 where
     Self: std::marker::Sized,
 {
@@ -37,7 +38,7 @@ where
     // but in this case we don't need any more.
 }
 
-impl<T> ArithmeticValues for T where T: Zero + One + FromPrimitive {}
+impl<T> ArithmeticValues for T where T: Zero + One + Signed + FromPrimitive {}
 
 pub trait ArithmeticCompare: PartialOrd + PartialEq
 where
