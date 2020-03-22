@@ -1,6 +1,67 @@
 // Indicator traits
 //
 
+use num_traits::cast::FromPrimitive;
+use num_traits::identities::{One, Zero};
+use num_traits::sign::Signed;
+use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{AddAssign, DivAssign, MulAssign, SubAssign};
+
+/// global algebraic trait
+pub trait ArithmeticType: ArithmeticOps + ArithmeticValues + ArithmeticCompare
+where
+    Self: std::marker::Sized,
+{
+}
+
+impl<T> ArithmeticType for T where T: ArithmeticOps + ArithmeticValues + ArithmeticCompare {}
+
+/// common algebraic operations
+pub trait ArithmeticOps:
+    Add<Output = Self>
+    + Sub<Output = Self>
+    + Mul<Output = Self>
+    + Div<Output = Self>
+    + AddAssign
+    + SubAssign
+    + MulAssign
+    + DivAssign
+where
+    Self: std::marker::Sized,
+{
+    // we'd usually add more functions in this block,
+    // but in this case we don't need any more.
+}
+
+/// algebraic compare
+impl<T> ArithmeticOps for T
+where
+    T: Add<Output = T> + Sub<Output = T> + Mul<Output = T> + Div<Output = T>,
+    T: AddAssign + SubAssign + MulAssign + DivAssign,
+{
+}
+
+pub trait ArithmeticValues: Zero + One + Signed + FromPrimitive
+where
+    Self: std::marker::Sized,
+{
+    // we'd usually add more functions in this block,
+    // but in this case we don't need any more.
+}
+
+/// fixed algebraic values
+impl<T> ArithmeticValues for T where T: Zero + One + Signed + FromPrimitive {}
+
+pub trait ArithmeticCompare: PartialOrd + PartialEq
+where
+    Self: std::marker::Sized,
+{
+    // we'd usually add more functions in this block,
+    // but in this case we don't need any more.
+}
+
+impl<T> ArithmeticCompare for T where T: PartialOrd + PartialEq {}
+
 /// Resets an indicator to the initial state.
 pub trait Reset {
     fn reset(&mut self);
@@ -15,32 +76,32 @@ pub trait Reset {
 /// [MACD](indicators/struct.MovingAverageConvergenceDivergence.html) it is `(f64, f64, f64)` since
 /// MACD returns 3 values.
 ///
-pub trait Next<T> {
+pub trait Next<T, U> {
     type Output;
     fn next(&mut self, input: T) -> Self::Output;
 }
 
 /// Open price of a particular period.
-pub trait Open {
-    fn open(&self) -> f64;
+pub trait Open<T> {
+    fn open(&self) -> T;
 }
 
 /// Close price of a particular period.
-pub trait Close {
-    fn close(&self) -> f64;
+pub trait Close<T> {
+    fn close(&self) -> T;
 }
 
 /// Lowest price of a particular period.
-pub trait Low {
-    fn low(&self) -> f64;
+pub trait Low<T> {
+    fn low(&self) -> T;
 }
 
 /// Highest price of a particular period.
-pub trait High {
-    fn high(&self) -> f64;
+pub trait High<T> {
+    fn high(&self) -> T;
 }
 
 /// Trading volume of a particular trading period.
-pub trait Volume {
-    fn volume(&self) -> f64;
+pub trait Volume<T> {
+    fn volume(&self) -> T;
 }

@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::errors::*;
+use crate::ArithmeticType;
 use crate::{Close, Next, Reset};
 
 /// An exponential moving average (EMA), also known as an exponentially weighted moving average
@@ -38,7 +39,7 @@ use crate::{Close, Next, Reset};
 /// use ta::indicators::ExponentialMovingAverage;
 /// use ta::Next;
 ///
-/// let mut ema = ExponentialMovingAverage::new(3).unwrap();
+/// let mut ema = ExponentialMovingAverage::<f64>::new(3).unwrap();
 /// assert_eq!(ema.next(2.0), 2.0);
 /// assert_eq!(ema.next(5.0), 3.5);
 /// assert_eq!(ema.next(1.0), 2.25);
@@ -51,23 +52,27 @@ use crate::{Close, Next, Reset};
 ///
 
 #[derive(Debug, Clone)]
-pub struct ExponentialMovingAverage {
+pub struct ExponentialMovingAverage<T> {
     length: u32,
-    k: f64,
-    current: f64,
+    k: T,
+    current: T,
     is_new: bool,
 }
 
-impl ExponentialMovingAverage {
+impl<T> ExponentialMovingAverage<T>
+where
+    T: ArithmeticType,
+{
     pub fn new(length: u32) -> Result<Self> {
         match length {
             0 => Err(Error::from_kind(ErrorKind::InvalidParameter)),
             _ => {
-                let k = 2f64 / (length as f64 + 1f64);
+                let k: T = T::from_u32(2).expect("Woot ?")
+                    / (T::from_u32(length).expect("Woot ?") + T::one());
                 let indicator = Self {
                     length,
                     k,
-                    current: 0f64,
+                    current: T::zero(),
                     is_new: true,
                 };
                 Ok(indicator)
@@ -80,42 +85,55 @@ impl ExponentialMovingAverage {
     }
 }
 
-impl Next<f64> for ExponentialMovingAverage {
-    type Output = f64;
+impl<T> Next<T, !> for ExponentialMovingAverage<T>
+where
+    T: Copy + ArithmeticType,
+{
+    type Output = T;
 
-    fn next(&mut self, input: f64) -> Self::Output {
+    fn next(&mut self, input: T) -> Self::Output {
         if self.is_new {
             self.is_new = false;
             self.current = input;
         } else {
-            self.current = self.k * input + (1.0 - self.k) * self.current;
+            self.current = self.k * input + (T::one() - self.k) * self.current;
         }
         self.current
     }
 }
 
-impl<'a, T: Close> Next<&'a T> for ExponentialMovingAverage {
-    type Output = f64;
+impl<'a, U, T> Next<&'a U, T> for ExponentialMovingAverage<T>
+where
+    U: Close<T>,
+    T: Copy + ArithmeticType,
+{
+    type Output = T;
 
-    fn next(&mut self, input: &'a T) -> Self::Output {
+    fn next(&mut self, input: &'a U) -> Self::Output {
         self.next(input.close())
     }
 }
 
-impl Reset for ExponentialMovingAverage {
+impl<T> Reset for ExponentialMovingAverage<T>
+where
+    T: ArithmeticType,
+{
     fn reset(&mut self) {
-        self.current = 0.0;
+        self.current = T::zero();
         self.is_new = true;
     }
 }
 
-impl Default for ExponentialMovingAverage {
+impl<T> Default for ExponentialMovingAverage<T>
+where
+    T: ArithmeticType,
+{
     fn default() -> Self {
         Self::new(9).unwrap()
     }
 }
 
-impl fmt::Display for ExponentialMovingAverage {
+impl<T> fmt::Display for ExponentialMovingAverage<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "EMA({})", self.length)
     }
@@ -130,8 +148,8 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(ExponentialMovingAverage::new(0).is_err());
-        assert!(ExponentialMovingAverage::new(1).is_ok());
+        assert!(ExponentialMovingAverage::<f64>::new(0).is_err());
+        assert!(ExponentialMovingAverage::<f64>::new(1).is_ok());
     }
 
     #[test]
@@ -165,13 +183,8 @@ mod tests {
     }
 
     #[test]
-    fn test_default() {
-        ExponentialMovingAverage::default();
-    }
-
-    #[test]
     fn test_display() {
-        let ema = ExponentialMovingAverage::new(7).unwrap();
+        let ema = ExponentialMovingAverage::<f64>::new(7).unwrap();
         assert_eq!(format!("{}", ema), "EMA(7)");
     }
 }

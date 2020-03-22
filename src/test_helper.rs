@@ -20,10 +20,10 @@ impl Bar {
         }
     }
 
-    //pub fn open<T: Into<f64>>(mut self, val :T ) -> Self {
-    //    self.open = val.into();
-    //    self
-    //}
+    pub fn open<T: Into<f64>>(mut self, val: T) -> Self {
+        self.open = val.into();
+        self
+    }
 
     pub fn high<T: Into<f64>>(mut self, val: T) -> Self {
         self.high = val.into();
@@ -46,31 +46,31 @@ impl Bar {
     }
 }
 
-impl Open for Bar {
+impl Open<f64> for Bar {
     fn open(&self) -> f64 {
         self.open
     }
 }
 
-impl Close for Bar {
+impl Close<f64> for Bar {
     fn close(&self) -> f64 {
         self.close
     }
 }
 
-impl Low for Bar {
+impl Low<f64> for Bar {
     fn low(&self) -> f64 {
         self.low
     }
 }
 
-impl High for Bar {
+impl High<f64> for Bar {
     fn high(&self) -> f64 {
         self.high
     }
 }
 
-impl Volume for Bar {
+impl Volume<f64> for Bar {
     fn volume(&self) -> f64 {
         self.volume
     }

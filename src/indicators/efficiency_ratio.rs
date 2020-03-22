@@ -3,6 +3,7 @@ use std::fmt;
 
 use crate::errors::*;
 use crate::traits::{Close, Next, Reset};
+use crate::ArithmeticType;
 
 /// Kaufman's Efficiency Ratio (ER).
 ///
@@ -19,7 +20,7 @@ use crate::traits::{Close, Next, Reset};
 /// use ta::indicators::EfficiencyRatio;
 /// use ta::Next;
 ///
-/// let mut er = EfficiencyRatio::new(4).unwrap();
+/// let mut er = EfficiencyRatio::<f64>::new(4).unwrap();
 /// assert_eq!(er.next(10.0), 1.0);
 /// assert_eq!(er.next(13.0), 1.0);
 /// assert_eq!(er.next(12.0), 0.5);
@@ -28,33 +29,39 @@ use crate::traits::{Close, Next, Reset};
 /// assert_eq!(er.next(19.0), 0.75);
 /// ```
 
-pub struct EfficiencyRatio {
+pub struct EfficiencyRatio<T> {
     length: u32,
-    prices: VecDeque<f64>,
+    prices: VecDeque<T>,
 }
 
-impl EfficiencyRatio {
+impl<T> EfficiencyRatio<T>
+where
+    T: ArithmeticType,
+{
     pub fn new(length: u32) -> Result<Self> {
         if length == 0 {
             Err(Error::from_kind(ErrorKind::InvalidParameter))
         } else {
             let indicator = Self {
                 length: length,
-                prices: VecDeque::with_capacity(length as usize + 1),
+                prices: VecDeque::<T>::with_capacity(length as usize + 1),
             };
             Ok(indicator)
         }
     }
 }
 
-impl Next<f64> for EfficiencyRatio {
-    type Output = f64;
+impl<T> Next<T, !> for EfficiencyRatio<T>
+where
+    T: Copy + ArithmeticType,
+{
+    type Output = T;
 
-    fn next(&mut self, input: f64) -> f64 {
+    fn next(&mut self, input: T) -> T {
         self.prices.push_back(input);
 
         if self.prices.len() <= 2 {
-            return 1.0;
+            return T::one();
         }
 
         let first = self.prices[0];
@@ -64,7 +71,7 @@ impl Next<f64> for EfficiencyRatio {
             .prices
             .iter()
             .skip(1)
-            .fold((first, 0.0), |(prev, sum), &val| {
+            .fold((first, T::zero()), |(prev, sum), &val| {
                 (val, sum + (prev - val).abs())
             })
             .1;
@@ -83,27 +90,40 @@ impl Next<f64> for EfficiencyRatio {
     }
 }
 
-impl<'a, T: Close> Next<&'a T> for EfficiencyRatio {
-    type Output = f64;
+impl<'a, U, T> Next<&'a U, T> for EfficiencyRatio<T>
+where
+    U: Close<T>,
+    T: Copy + ArithmeticType,
+{
+    type Output = T;
 
-    fn next(&mut self, input: &'a T) -> f64 {
+    fn next(&mut self, input: &'a U) -> Self::Output {
         self.next(input.close())
     }
 }
 
-impl Reset for EfficiencyRatio {
+impl<T> Reset for EfficiencyRatio<T>
+where
+    T: ArithmeticType,
+{
     fn reset(&mut self) {
         self.prices.clear();
     }
 }
 
-impl Default for EfficiencyRatio {
+impl<T> Default for EfficiencyRatio<T>
+where
+    T: ArithmeticType,
+{
     fn default() -> Self {
         Self::new(14).unwrap()
     }
 }
 
-impl fmt::Display for EfficiencyRatio {
+impl<T> fmt::Display for EfficiencyRatio<T>
+where
+    T: ArithmeticType,
+{
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ER({})", self.length)
     }
@@ -118,13 +138,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(EfficiencyRatio::new(0).is_err());
-        assert!(EfficiencyRatio::new(1).is_ok());
+        assert!(EfficiencyRatio::<f64>::new(0).is_err());
+        assert!(EfficiencyRatio::<f64>::new(1).is_ok());
     }
 
     #[test]
     fn test_next_f64() {
-        let mut er = EfficiencyRatio::new(3).unwrap();
+        let mut er = EfficiencyRatio::<f64>::new(3).unwrap();
 
         assert_eq!(round(er.next(3.0)), 1.0);
         assert_eq!(round(er.next(5.0)), 1.0);
@@ -144,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_display() {
-        let er = EfficiencyRatio::new(17).unwrap();
+        let er = EfficiencyRatio::<f64>::new(17).unwrap();
         assert_eq!(format!("{}", er), "ER(17)");
     }
 }

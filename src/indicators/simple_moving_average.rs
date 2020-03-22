@@ -1,6 +1,7 @@
 use std::fmt;
 
 use crate::errors::*;
+use crate::ArithmeticType;
 use crate::{Close, Next, Reset};
 
 /// Simple moving average (SMA).
@@ -25,7 +26,7 @@ use crate::{Close, Next, Reset};
 /// use ta::indicators::SimpleMovingAverage;
 /// use ta::Next;
 ///
-/// let mut sma = SimpleMovingAverage::new(3).unwrap();
+/// let mut sma = SimpleMovingAverage::<f64>::new(3).unwrap();
 /// assert_eq!(sma.next(10.0), 10.0);
 /// assert_eq!(sma.next(11.0), 10.5);
 /// assert_eq!(sma.next(12.0), 11.0);
@@ -37,15 +38,18 @@ use crate::{Close, Next, Reset};
 /// * [Simple Moving Average, Wikipedia](https://en.wikipedia.org/wiki/Moving_average#Simple_moving_average)
 ///
 #[derive(Debug, Clone)]
-pub struct SimpleMovingAverage {
+pub struct SimpleMovingAverage<T> {
     n: u32,
     index: usize,
     count: u32,
-    sum: f64,
-    vec: Vec<f64>,
+    sum: T,
+    vec: Vec<T>,
 }
 
-impl SimpleMovingAverage {
+impl<T> SimpleMovingAverage<T>
+where
+    T: Clone + ArithmeticType,
+{
     pub fn new(n: u32) -> Result<Self> {
         match n {
             0 => Err(Error::from_kind(ErrorKind::InvalidParameter)),
@@ -54,8 +58,8 @@ impl SimpleMovingAverage {
                     n: n,
                     index: 0,
                     count: 0,
-                    sum: 0.0,
-                    vec: vec![0.0; n as usize],
+                    sum: T::zero(),
+                    vec: vec![T::zero(); n as usize],
                 };
                 Ok(indicator)
             }
@@ -63,10 +67,13 @@ impl SimpleMovingAverage {
     }
 }
 
-impl Next<f64> for SimpleMovingAverage {
-    type Output = f64;
+impl<T> Next<T, !> for SimpleMovingAverage<T>
+where
+    T: Copy + ArithmeticType,
+{
+    type Output = T;
 
-    fn next(&mut self, input: f64) -> Self::Output {
+    fn next(&mut self, input: T) -> Self::Output {
         self.index = (self.index + 1) % (self.n as usize);
 
         let old_val = self.vec[self.index];
@@ -77,36 +84,46 @@ impl Next<f64> for SimpleMovingAverage {
         }
 
         self.sum = self.sum - old_val + input;
-        self.sum / (self.count as f64)
+        self.sum / T::from_u32(self.count).expect("Woot ?")
     }
 }
 
-impl<'a, T: Close> Next<&'a T> for SimpleMovingAverage {
-    type Output = f64;
+impl<'a, U, T> Next<&'a U, T> for SimpleMovingAverage<T>
+where
+    U: Close<T>,
+    T: Copy + ArithmeticType,
+{
+    type Output = T;
 
-    fn next(&mut self, input: &'a T) -> Self::Output {
+    fn next(&mut self, input: &'a U) -> Self::Output {
         self.next(input.close())
     }
 }
 
-impl Reset for SimpleMovingAverage {
+impl<T> Reset for SimpleMovingAverage<T>
+where
+    T: ArithmeticType,
+{
     fn reset(&mut self) {
         self.index = 0;
         self.count = 0;
-        self.sum = 0.0;
+        self.sum = T::zero();
         for i in 0..(self.n as usize) {
-            self.vec[i] = 0.0;
+            self.vec[i] = T::zero();
         }
     }
 }
 
-impl Default for SimpleMovingAverage {
+impl<T> Default for SimpleMovingAverage<T>
+where
+    T: Clone + ArithmeticType,
+{
     fn default() -> Self {
         Self::new(9).unwrap()
     }
 }
 
-impl fmt::Display for SimpleMovingAverage {
+impl<T> fmt::Display for SimpleMovingAverage<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "SMA({})", self.n)
     }
@@ -121,13 +138,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(SimpleMovingAverage::new(0).is_err());
-        assert!(SimpleMovingAverage::new(1).is_ok());
+        assert!(SimpleMovingAverage::<f64>::new(0).is_err());
+        assert!(SimpleMovingAverage::<f64>::new(1).is_ok());
     }
 
     #[test]
     fn test_next() {
-        let mut sma = SimpleMovingAverage::new(4).unwrap();
+        let mut sma = SimpleMovingAverage::<f64>::new(4).unwrap();
         assert_eq!(sma.next(4.0), 4.0);
         assert_eq!(sma.next(5.0), 4.5);
         assert_eq!(sma.next(6.0), 5.0);
@@ -143,7 +160,7 @@ mod tests {
             Bar::new().close(close)
         }
 
-        let mut sma = SimpleMovingAverage::new(3).unwrap();
+        let mut sma = SimpleMovingAverage::<f64>::new(3).unwrap();
         assert_eq!(sma.next(&bar(4.0)), 4.0);
         assert_eq!(sma.next(&bar(4.0)), 4.0);
         assert_eq!(sma.next(&bar(7.0)), 5.0);
@@ -152,7 +169,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut sma = SimpleMovingAverage::new(4).unwrap();
+        let mut sma = SimpleMovingAverage::<f64>::new(4).unwrap();
         assert_eq!(sma.next(4.0), 4.0);
         assert_eq!(sma.next(5.0), 4.5);
         assert_eq!(sma.next(6.0), 5.0);
@@ -163,12 +180,12 @@ mod tests {
 
     #[test]
     fn test_default() {
-        SimpleMovingAverage::default();
+        SimpleMovingAverage::<f64>::default();
     }
 
     #[test]
     fn test_display() {
-        let sma = SimpleMovingAverage::new(5).unwrap();
+        let sma = SimpleMovingAverage::<f64>::new(5).unwrap();
         assert_eq!(format!("{}", sma), "SMA(5)");
     }
 }

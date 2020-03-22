@@ -7,7 +7,7 @@
 //! Every indicator implements [Next<T>](trait.Next.html) and [Reset](trait.Reset.html) traits,
 //! which are the core concept of the library.
 //!
-//! Since `Next<T>` is a generic trait, most of the indicators can work with both input types: `f64` and more complex
+//! Since `Next<T>` is a generic trait, most of the indicators can work with both input types: `T` and more complex
 //! structures like [DataItem](struct.DataItem.html).
 //!
 //! # Example
@@ -16,7 +16,7 @@
 //! use ta::Next;
 //!
 //! // it can return an error, when an invalid length is passed (e.g. 0)
-//! let mut ema = ExponentialMovingAverage::new(3).unwrap();
+//! let mut ema = ExponentialMovingAverage::<f64>::new(3).unwrap();
 //!
 //! assert_eq!(ema.next(2.0), 2.0);
 //! assert_eq!(ema.next(5.0), 3.5);
@@ -46,6 +46,8 @@
 //!   * [Rate of Change (ROC)](indicators/struct.RateOfChange.html)
 //!   * [On Balance Volume (OBV)](indicators/struct.OnBalanceVolume.html)
 //!
+#![feature(never_type)]
+
 #[macro_use]
 extern crate error_chain;
 

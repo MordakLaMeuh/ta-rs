@@ -2,6 +2,7 @@ use std::collections::VecDeque;
 use std::fmt;
 
 use crate::errors::*;
+use crate::ArithmeticType;
 use crate::{Close, High, Low, Next, Reset, Volume};
 
 /// Money Flow Index (MFI).
@@ -36,7 +37,7 @@ use crate::{Close, High, Low, Next, Reset, Volume};
 /// use ta::indicators::MoneyFlowIndex;
 /// use ta::{Next, DataItem};
 ///
-/// let mut mfi = MoneyFlowIndex::new(3).unwrap();
+/// let mut mfi = MoneyFlowIndex::<f64>::new(3).unwrap();
 /// let di = DataItem::builder()
 ///             .high(3.0)
 ///             .low(1.0)
@@ -52,16 +53,19 @@ use crate::{Close, High, Low, Next, Reset, Volume};
 /// * [Money Flow Index, stockcharts](https://stockcharts.com/school/doku.php?id=chart_school:technical_indicators:money_flow_index_mfi)
 
 #[derive(Debug, Clone)]
-pub struct MoneyFlowIndex {
+pub struct MoneyFlowIndex<T> {
     n: u32,
-    money_flows: VecDeque<f64>,
-    prev_typical_price: f64,
-    total_positive_money_flow: f64,
-    total_absolute_money_flow: f64,
+    money_flows: VecDeque<T>,
+    prev_typical_price: T,
+    total_positive_money_flow: T,
+    total_absolute_money_flow: T,
     is_new: bool,
 }
 
-impl MoneyFlowIndex {
+impl<T> MoneyFlowIndex<T>
+where
+    T: ArithmeticType,
+{
     pub fn new(n: u32) -> Result<Self> {
         match n {
             0 => Err(Error::from_kind(ErrorKind::InvalidParameter)),
@@ -69,9 +73,9 @@ impl MoneyFlowIndex {
                 let indicator = Self {
                     n: n,
                     money_flows: VecDeque::with_capacity(n as usize + 1),
-                    prev_typical_price: 0.0,
-                    total_positive_money_flow: 0.0,
-                    total_absolute_money_flow: 0.0,
+                    prev_typical_price: T::zero(),
+                    total_positive_money_flow: T::zero(),
+                    total_absolute_money_flow: T::zero(),
                     is_new: true,
                 };
                 Ok(indicator)
@@ -80,19 +84,27 @@ impl MoneyFlowIndex {
     }
 }
 
-impl<'a, T: High + Low + Close + Volume> Next<&'a T> for MoneyFlowIndex {
-    type Output = f64;
+impl<'a, U, T> Next<&'a U, T> for MoneyFlowIndex<T>
+where
+    U: High<T> + Low<T> + Close<T> + Volume<T>,
+    T: Copy + ArithmeticType,
+{
+    type Output = T;
 
-    fn next(&mut self, input: &'a T) -> f64 {
-        let typical_price = (input.high() + input.low() + input.close()) / 3.0;
+    //impl<'a, T: High + Low + Close + Volume> Next<&'a T> for MoneyFlowIndex {
+    //    type Output = f64;
+
+    fn next(&mut self, input: &'a U) -> T {
+        let typical_price =
+            (input.high() + input.low() + input.close()) / T::from_u32(3).expect("Woot ?");
 
         if self.is_new {
             // money flow is 0, because without having previous typical_price
             // it is not possible to determine is it positive or negative.
-            self.money_flows.push_back(0.0);
+            self.money_flows.push_back(T::zero());
             self.prev_typical_price = typical_price;
             self.is_new = false;
-            return 50.0;
+            return T::from_u32(50).expect("Woot ?");
         } else {
             let money_flow = typical_price * input.volume();
 
@@ -107,7 +119,7 @@ impl<'a, T: High + Low + Close + Volume> Next<&'a T> for MoneyFlowIndex {
 
             if self.money_flows.len() == (self.n as usize) {
                 let old_signed_money_flow = self.money_flows.pop_front().unwrap();
-                if old_signed_money_flow > 0.0 {
+                if old_signed_money_flow > T::zero() {
                     self.total_positive_money_flow -= old_signed_money_flow;
                     self.total_absolute_money_flow -= old_signed_money_flow;
                 } else {
@@ -119,29 +131,36 @@ impl<'a, T: High + Low + Close + Volume> Next<&'a T> for MoneyFlowIndex {
             self.money_flows.push_back(signed_money_flow);
             self.prev_typical_price = typical_price;
 
-            (self.total_positive_money_flow / self.total_absolute_money_flow) * 100.0
+            (self.total_positive_money_flow / self.total_absolute_money_flow)
+                * T::from_u32(100).expect("Woot ?")
         }
     }
 }
 
-impl Default for MoneyFlowIndex {
+impl<T> Default for MoneyFlowIndex<T>
+where
+    T: ArithmeticType,
+{
     fn default() -> Self {
         Self::new(14).unwrap()
     }
 }
 
-impl fmt::Display for MoneyFlowIndex {
+impl<T> fmt::Display for MoneyFlowIndex<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "MFI({})", self.n)
     }
 }
 
-impl Reset for MoneyFlowIndex {
+impl<T> Reset for MoneyFlowIndex<T>
+where
+    T: ArithmeticType,
+{
     fn reset(&mut self) {
         self.money_flows.clear();
-        self.prev_typical_price = 0.0;
-        self.total_positive_money_flow = 0.0;
-        self.total_absolute_money_flow = 0.0;
+        self.prev_typical_price = T::zero();
+        self.total_positive_money_flow = T::zero();
+        self.total_absolute_money_flow = T::zero();
         self.is_new = true;
     }
 }
@@ -153,13 +172,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(MoneyFlowIndex::new(0).is_err());
-        assert!(MoneyFlowIndex::new(1).is_ok());
+        assert!(MoneyFlowIndex::<f64>::new(0).is_err());
+        assert!(MoneyFlowIndex::<f64>::new(1).is_ok());
     }
 
     #[test]
     fn test_next_bar() {
-        let mut mfi = MoneyFlowIndex::new(3).unwrap();
+        let mut mfi = MoneyFlowIndex::<f64>::new(3).unwrap();
 
         // tp = 2.0
         let bar1 = Bar::new().high(3).low(1).close(2).volume(500.0);
@@ -192,7 +211,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut mfi = MoneyFlowIndex::new(3).unwrap();
+        let mut mfi = MoneyFlowIndex::<f64>::new(3).unwrap();
 
         let bar1 = Bar::new().high(2).low(1).close(1.5).volume(1000.0);
         let bar2 = Bar::new().high(5).low(3).close(4).volume(2000.0);
@@ -220,13 +239,12 @@ mod tests {
 
     #[test]
     fn test_default() {
-        MoneyFlowIndex::default();
+        MoneyFlowIndex::<f64>::default();
     }
 
     #[test]
     fn test_display() {
-        let mfi = MoneyFlowIndex::new(10).unwrap();
+        let mfi = MoneyFlowIndex::<f64>::new(10).unwrap();
         assert_eq!(format!("{}", mfi), "MFI(10)");
     }
-
 }

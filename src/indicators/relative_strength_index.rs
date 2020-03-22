@@ -2,6 +2,7 @@ use std::fmt;
 
 use crate::errors::*;
 use crate::indicators::ExponentialMovingAverage as Ema;
+use crate::ArithmeticType;
 use crate::{Close, Next, Reset};
 
 /// The relative strength index (RSI).
@@ -55,7 +56,7 @@ use crate::{Close, Next, Reset};
 /// use ta::indicators::RelativeStrengthIndex;
 /// use ta::Next;
 ///
-/// let mut rsi = RelativeStrengthIndex::new(3).unwrap();
+/// let mut rsi = RelativeStrengthIndex::<f64>::new(3).unwrap();
 /// assert_eq!(rsi.next(10.0), 50.0);
 /// assert_eq!(rsi.next(10.5).round(), 86.0);
 /// assert_eq!(rsi.next(10.0).round(), 35.0);
@@ -65,41 +66,47 @@ use crate::{Close, Next, Reset};
 /// # Links
 /// * [Relative strength index (Wikipedia)](https://en.wikipedia.org/wiki/Relative_strength_index)
 /// * [RSI (Investopedia)](http://www.investopedia.com/terms/r/rsi.asp)
-///
 #[derive(Debug, Clone)]
-pub struct RelativeStrengthIndex {
+pub struct RelativeStrengthIndex<T> {
     n: u32,
-    up_ema_indicator: Ema,
-    down_ema_indicator: Ema,
-    prev_val: f64,
+    up_ema_indicator: Ema<T>,
+    down_ema_indicator: Ema<T>,
+    prev_val: T,
     is_new: bool,
 }
 
-impl RelativeStrengthIndex {
+impl<T> RelativeStrengthIndex<T>
+where
+    T: ArithmeticType,
+{
     pub fn new(n: u32) -> Result<Self> {
         let rsi = Self {
             n: n,
             up_ema_indicator: Ema::new(n)?,
             down_ema_indicator: Ema::new(n)?,
-            prev_val: 0.0,
+            prev_val: T::zero(),
             is_new: true,
         };
         Ok(rsi)
     }
 }
 
-impl Next<f64> for RelativeStrengthIndex {
-    type Output = f64;
+impl<T> Next<T, !> for RelativeStrengthIndex<T>
+where
+    T: Copy + ArithmeticType,
+{
+    //impl Next<f64> for RelativeStrengthIndex {
+    type Output = T;
 
-    fn next(&mut self, input: f64) -> Self::Output {
-        let mut up = 0.0;
-        let mut down = 0.0;
+    fn next(&mut self, input: T) -> Self::Output {
+        let mut up = T::zero();
+        let mut down = T::zero();
 
         if self.is_new {
             self.is_new = false;
             // Initialize with some small seed numbers to avoid division by zero
-            up = 0.1;
-            down = 0.1;
+            up = T::from_f64(0.1).expect("Woot ?");
+            down = T::from_f64(0.1).expect("Woot ?");
         } else {
             if input > self.prev_val {
                 up = input - self.prev_val;
@@ -111,34 +118,44 @@ impl Next<f64> for RelativeStrengthIndex {
         self.prev_val = input;
         let up_ema = self.up_ema_indicator.next(up);
         let down_ema = self.down_ema_indicator.next(down);
-        100.0 * up_ema / (up_ema + down_ema)
+        T::from_u32(100).expect("Woot ?") * up_ema / (up_ema + down_ema)
     }
 }
 
-impl<'a, T: Close> Next<&'a T> for RelativeStrengthIndex {
-    type Output = f64;
+impl<'a, U, T> Next<&'a U, T> for RelativeStrengthIndex<T>
+where
+    U: Close<T>,
+    T: Copy + ArithmeticType,
+{
+    type Output = T;
 
-    fn next(&mut self, input: &'a T) -> Self::Output {
+    fn next(&mut self, input: &'a U) -> Self::Output {
         self.next(input.close())
     }
 }
 
-impl Reset for RelativeStrengthIndex {
+impl<T> Reset for RelativeStrengthIndex<T>
+where
+    T: ArithmeticType,
+{
     fn reset(&mut self) {
         self.is_new = true;
-        self.prev_val = 0.0;
+        self.prev_val = T::zero();
         self.up_ema_indicator.reset();
         self.down_ema_indicator.reset();
     }
 }
 
-impl Default for RelativeStrengthIndex {
+impl<T> Default for RelativeStrengthIndex<T>
+where
+    T: ArithmeticType,
+{
     fn default() -> Self {
         Self::new(14).unwrap()
     }
 }
 
-impl fmt::Display for RelativeStrengthIndex {
+impl<T> fmt::Display for RelativeStrengthIndex<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "RSI({})", self.n)
     }
@@ -153,13 +170,13 @@ mod tests {
 
     #[test]
     fn test_new() {
-        assert!(RelativeStrengthIndex::new(0).is_err());
-        assert!(RelativeStrengthIndex::new(1).is_ok());
+        assert!(RelativeStrengthIndex::<f64>::new(0).is_err());
+        assert!(RelativeStrengthIndex::<f64>::new(1).is_ok());
     }
 
     #[test]
     fn test_next() {
-        let mut rsi = RelativeStrengthIndex::new(3).unwrap();
+        let mut rsi = RelativeStrengthIndex::<f64>::new(3).unwrap();
         assert_eq!(rsi.next(10.0), 50.0);
         assert_eq!(rsi.next(10.5).round(), 86.0);
         assert_eq!(rsi.next(10.0).round(), 35.0);
@@ -168,7 +185,7 @@ mod tests {
 
     #[test]
     fn test_reset() {
-        let mut rsi = RelativeStrengthIndex::new(3).unwrap();
+        let mut rsi = RelativeStrengthIndex::<f64>::new(3).unwrap();
         assert_eq!(rsi.next(10.0), 50.0);
         assert_eq!(rsi.next(10.5).round(), 86.0);
 
@@ -179,12 +196,12 @@ mod tests {
 
     #[test]
     fn test_default() {
-        RelativeStrengthIndex::default();
+        RelativeStrengthIndex::<f64>::default();
     }
 
     #[test]
     fn test_display() {
-        let rsi = RelativeStrengthIndex::new(16).unwrap();
+        let rsi = RelativeStrengthIndex::<f64>::new(16).unwrap();
         assert_eq!(format!("{}", rsi), "RSI(16)");
     }
 }
