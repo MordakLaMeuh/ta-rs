@@ -1,8 +1,10 @@
 use std::fmt;
+use std::ops::{Add, Div, Mul, Sub};
+
+use num_traits::{cast::FromPrimitive, One, Zero};
 
 use crate::errors::*;
 use crate::indicators::ExponentialMovingAverage as Ema;
-use crate::ArithmeticType;
 use crate::{Close, Next, Reset};
 
 /// The relative strength index (RSI).
@@ -77,7 +79,7 @@ pub struct RelativeStrengthIndex<T> {
 
 impl<T> RelativeStrengthIndex<T>
 where
-    T: ArithmeticType,
+    T: Zero + One + Div<Output = T> + FromPrimitive,
 {
     pub fn new(n: u32) -> Result<Self> {
         let rsi = Self {
@@ -93,9 +95,16 @@ where
 
 impl<T> Next<T, !> for RelativeStrengthIndex<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy
+        + Zero
+        + One
+        + Add<Output = T>
+        + Div<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + FromPrimitive
+        + PartialOrd,
 {
-    //impl Next<f64> for RelativeStrengthIndex {
     type Output = T;
 
     fn next(&mut self, input: T) -> Self::Output {
@@ -125,7 +134,15 @@ where
 impl<'a, U, T> Next<&'a U, T> for RelativeStrengthIndex<T>
 where
     U: Close<T>,
-    T: Copy + ArithmeticType,
+    T: Copy
+        + Zero
+        + One
+        + Add<Output = T>
+        + Div<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + FromPrimitive
+        + PartialOrd,
 {
     type Output = T;
 
@@ -136,7 +153,7 @@ where
 
 impl<T> Reset for RelativeStrengthIndex<T>
 where
-    T: ArithmeticType,
+    T: Zero,
 {
     fn reset(&mut self) {
         self.is_new = true;
@@ -148,7 +165,7 @@ where
 
 impl<T> Default for RelativeStrengthIndex<T>
 where
-    T: ArithmeticType,
+    T: Zero + One + Div<Output = T> + FromPrimitive,
 {
     fn default() -> Self {
         Self::new(14).unwrap()

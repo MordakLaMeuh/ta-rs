@@ -1,8 +1,10 @@
 use std::fmt;
+use std::ops::{Add, Div, Mul, Sub};
+
+use num_traits::{FromPrimitive, One, Zero};
 
 use crate::errors::*;
 use crate::indicators::ExponentialMovingAverage as Ema;
-use crate::ArithmeticType;
 use crate::{Close, Next, Reset};
 
 /// Moving average converge divergence (MACD).
@@ -58,7 +60,7 @@ pub struct MovingAverageConvergenceDivergence<T> {
 
 impl<T> MovingAverageConvergenceDivergence<T>
 where
-    T: ArithmeticType,
+    T: Zero + One + Div<Output = T> + FromPrimitive,
 {
     pub fn new(fast_length: u32, slow_length: u32, signal_length: u32) -> Result<Self> {
         let indicator = Self {
@@ -72,7 +74,7 @@ where
 
 impl<T> Next<T, !> for MovingAverageConvergenceDivergence<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + One + Add<Output = T> + Sub<Output = T> + Mul<Output = T>,
 {
     type Output = (T, T, T);
 
@@ -91,7 +93,7 @@ where
 impl<'a, U, T> Next<&'a U, T> for MovingAverageConvergenceDivergence<T>
 where
     U: Close<T>,
-    T: Copy + ArithmeticType,
+    T: Copy + One + Add<Output = T> + Sub<Output = T> + Mul<Output = T>,
 {
     type Output = (T, T, T);
 
@@ -102,7 +104,7 @@ where
 
 impl<T> Reset for MovingAverageConvergenceDivergence<T>
 where
-    T: ArithmeticType,
+    T: Zero,
 {
     fn reset(&mut self) {
         self.fast_ema.reset();
@@ -113,17 +115,14 @@ where
 
 impl<T> Default for MovingAverageConvergenceDivergence<T>
 where
-    T: ArithmeticType,
+    T: Zero + One + Div<Output = T> + FromPrimitive,
 {
     fn default() -> Self {
         Self::new(12, 26, 9).unwrap()
     }
 }
 
-impl<T> fmt::Display for MovingAverageConvergenceDivergence<T>
-where
-    T: ArithmeticType,
-{
+impl<T> fmt::Display for MovingAverageConvergenceDivergence<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(
             f,

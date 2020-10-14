@@ -1,8 +1,10 @@
 use std::fmt;
+use std::ops::{Add, Div, Mul, Sub};
+
+use num_traits::{cast::FromPrimitive, One, Zero};
 
 use crate::errors::Result;
 use crate::indicators::{ExponentialMovingAverage, FastStochastic};
-use crate::ArithmeticType;
 use crate::{Close, High, Low, Next, Reset};
 
 /// Slow stochastic oscillator.
@@ -35,7 +37,7 @@ pub struct SlowStochastic<T> {
 
 impl<T> SlowStochastic<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Zero + One + FromPrimitive + PartialOrd + Div<Output = T>,
 {
     pub fn new(stochastic_n: u32, ema_n: u32) -> Result<Self> {
         let indicator = Self {
@@ -48,7 +50,14 @@ where
 
 impl<T> Next<T, !> for SlowStochastic<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy
+        + One
+        + PartialOrd
+        + FromPrimitive
+        + Add<Output = T>
+        + Div<Output = T>
+        + Mul<Output = T>
+        + Sub<Output = T>,
 {
     type Output = T;
 
@@ -60,7 +69,14 @@ where
 impl<'a, U, T> Next<&'a U, T> for SlowStochastic<T>
 where
     U: High<T> + Low<T> + Close<T>,
-    T: Copy + ArithmeticType,
+    T: Copy
+        + One
+        + PartialOrd
+        + FromPrimitive
+        + Add<Output = T>
+        + Div<Output = T>
+        + Mul<Output = T>
+        + Sub<Output = T>,
 {
     type Output = T;
 
@@ -71,7 +87,7 @@ where
 
 impl<T> Reset for SlowStochastic<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Zero,
 {
     fn reset(&mut self) {
         self.fast_stochastic.reset();
@@ -81,7 +97,7 @@ where
 
 impl<T> Default for SlowStochastic<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Zero + One + FromPrimitive + PartialOrd + Div<Output = T>,
 {
     fn default() -> Self {
         Self::new(14, 3).unwrap()
@@ -90,7 +106,7 @@ where
 
 impl<T> fmt::Display for SlowStochastic<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(

@@ -1,6 +1,8 @@
 use std::fmt;
+use std::ops::{Add, Sub};
 
-use crate::ArithmeticType;
+use num_traits::Zero;
+
 use crate::{Close, Next, Reset, Volume};
 
 /// On Balance Volume (OBV).
@@ -65,7 +67,7 @@ pub struct OnBalanceVolume<T> {
 
 impl<T> OnBalanceVolume<T>
 where
-    T: ArithmeticType,
+    T: Zero,
 {
     pub fn new() -> Self {
         Self {
@@ -78,7 +80,7 @@ where
 impl<'a, U, T> Next<&'a U, T> for OnBalanceVolume<T>
 where
     U: Close<T> + Volume<T>,
-    T: Copy + ArithmeticType,
+    T: Copy + PartialOrd + Add<Output = T> + Sub<Output = T>,
 {
     type Output = T;
 
@@ -95,7 +97,7 @@ where
 
 impl<T> Default for OnBalanceVolume<T>
 where
-    T: ArithmeticType,
+    T: Zero,
 {
     fn default() -> Self {
         Self::new()
@@ -110,7 +112,7 @@ impl<T> fmt::Display for OnBalanceVolume<T> {
 
 impl<T> Reset for OnBalanceVolume<T>
 where
-    T: ArithmeticType,
+    T: Zero,
 {
     fn reset(&mut self) {
         self.obv = T::zero();

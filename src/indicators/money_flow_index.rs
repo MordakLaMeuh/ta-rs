@@ -1,8 +1,10 @@
 use std::collections::VecDeque;
 use std::fmt;
+use std::ops::{AddAssign, Div, Mul, SubAssign};
+
+use num_traits::{FromPrimitive, Signed, Zero};
 
 use crate::errors::*;
-use crate::ArithmeticType;
 use crate::{Close, High, Low, Next, Reset, Volume};
 
 /// Money Flow Index (MFI).
@@ -64,7 +66,7 @@ pub struct MoneyFlowIndex<T> {
 
 impl<T> MoneyFlowIndex<T>
 where
-    T: ArithmeticType,
+    T: Zero,
 {
     pub fn new(n: u32) -> Result<Self> {
         match n {
@@ -87,7 +89,15 @@ where
 impl<'a, U, T> Next<&'a U, T> for MoneyFlowIndex<T>
 where
     U: High<T> + Low<T> + Close<T> + Volume<T>,
-    T: Copy + ArithmeticType,
+    T: Copy
+        + Zero
+        + Signed
+        + FromPrimitive
+        + Div<Output = T>
+        + Mul<Output = T>
+        + AddAssign
+        + SubAssign
+        + PartialOrd,
 {
     type Output = T;
 
@@ -139,7 +149,15 @@ where
 
 impl<T> Default for MoneyFlowIndex<T>
 where
-    T: ArithmeticType,
+    T: Copy
+        + Zero
+        + Signed
+        + FromPrimitive
+        + Div<Output = T>
+        + Mul<Output = T>
+        + AddAssign
+        + SubAssign
+        + PartialOrd,
 {
     fn default() -> Self {
         Self::new(14).unwrap()
@@ -154,7 +172,7 @@ impl<T> fmt::Display for MoneyFlowIndex<T> {
 
 impl<T> Reset for MoneyFlowIndex<T>
 where
-    T: ArithmeticType,
+    T: Zero,
 {
     fn reset(&mut self) {
         self.money_flows.clear();

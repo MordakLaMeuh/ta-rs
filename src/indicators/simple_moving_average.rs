@@ -1,7 +1,9 @@
 use std::fmt;
+use std::ops::{Add, Div, Sub};
+
+use num_traits::{cast::FromPrimitive, Zero};
 
 use crate::errors::*;
-use crate::ArithmeticType;
 use crate::{Close, Next, Reset};
 
 /// Simple moving average (SMA).
@@ -48,7 +50,7 @@ pub struct SimpleMovingAverage<T> {
 
 impl<T> SimpleMovingAverage<T>
 where
-    T: Clone + ArithmeticType,
+    T: Clone + Zero,
 {
     pub fn new(n: u32) -> Result<Self> {
         match n {
@@ -69,7 +71,7 @@ where
 
 impl<T> Next<T, !> for SimpleMovingAverage<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Add<Output = T> + Div<Output = T> + Sub<Output = T> + FromPrimitive,
 {
     type Output = T;
 
@@ -91,7 +93,7 @@ where
 impl<'a, U, T> Next<&'a U, T> for SimpleMovingAverage<T>
 where
     U: Close<T>,
-    T: Copy + ArithmeticType,
+    T: Copy + Add<Output = T> + Div<Output = T> + Sub<Output = T> + FromPrimitive,
 {
     type Output = T;
 
@@ -102,7 +104,7 @@ where
 
 impl<T> Reset for SimpleMovingAverage<T>
 where
-    T: ArithmeticType,
+    T: Zero,
 {
     fn reset(&mut self) {
         self.index = 0;
@@ -116,7 +118,7 @@ where
 
 impl<T> Default for SimpleMovingAverage<T>
 where
-    T: Clone + ArithmeticType,
+    T: Clone + Zero,
 {
     fn default() -> Self {
         Self::new(9).unwrap()

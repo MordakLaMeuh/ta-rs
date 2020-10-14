@@ -1,9 +1,11 @@
 use std::collections::VecDeque;
 use std::fmt;
+use std::ops::Sub;
+
+use num_traits::{One, Signed, Zero};
 
 use crate::errors::*;
 use crate::traits::{Close, Next, Reset};
-use crate::ArithmeticType;
 
 /// Kaufman's Efficiency Ratio (ER).
 ///
@@ -34,10 +36,7 @@ pub struct EfficiencyRatio<T> {
     prices: VecDeque<T>,
 }
 
-impl<T> EfficiencyRatio<T>
-where
-    T: ArithmeticType,
-{
+impl<T> EfficiencyRatio<T> {
     pub fn new(length: u32) -> Result<Self> {
         if length == 0 {
             Err(Error::from_kind(ErrorKind::InvalidParameter))
@@ -53,7 +52,7 @@ where
 
 impl<T> Next<T, !> for EfficiencyRatio<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Zero + One + Sub<Output = T> + Signed,
 {
     type Output = T;
 
@@ -93,7 +92,7 @@ where
 impl<'a, U, T> Next<&'a U, T> for EfficiencyRatio<T>
 where
     U: Close<T>,
-    T: Copy + ArithmeticType,
+    T: Copy + Zero + One + Sub<Output = T> + Signed,
 {
     type Output = T;
 
@@ -102,28 +101,19 @@ where
     }
 }
 
-impl<T> Reset for EfficiencyRatio<T>
-where
-    T: ArithmeticType,
-{
+impl<T> Reset for EfficiencyRatio<T> {
     fn reset(&mut self) {
         self.prices.clear();
     }
 }
 
-impl<T> Default for EfficiencyRatio<T>
-where
-    T: ArithmeticType,
-{
+impl<T> Default for EfficiencyRatio<T> {
     fn default() -> Self {
         Self::new(14).unwrap()
     }
 }
 
-impl<T> fmt::Display for EfficiencyRatio<T>
-where
-    T: ArithmeticType,
-{
+impl<T> fmt::Display for EfficiencyRatio<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ER({})", self.length)
     }

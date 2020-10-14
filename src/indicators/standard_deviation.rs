@@ -1,7 +1,9 @@
 use std::fmt;
+use std::ops::{Add, AddAssign, Div, Mul, Sub};
+
+use num_traits::{cast::FromPrimitive, One, Zero};
 
 use crate::errors::*;
-use crate::ArithmeticType;
 use crate::{Close, Next, Reset};
 
 /// Standard deviation (SD).
@@ -49,7 +51,7 @@ pub struct StandardDeviation<T> {
 
 impl<T> StandardDeviation<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Zero,
 {
     pub fn new(n: u32) -> Result<Self> {
         match n {
@@ -77,7 +79,7 @@ where
 /// See http://villemin.gerard.free.fr/ThNbDemo/Heron.htm
 fn find_square_root<T>(seed: T, v: T, ttl: usize) -> T
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Zero + One + PartialEq + Div<Output = T> + FromPrimitive,
 {
     if ttl == 0 {
         seed
@@ -97,14 +99,23 @@ const TTL: usize = 32;
 
 fn sqrt<T>(v: T) -> T
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Zero + One + PartialEq + Div<Output = T> + FromPrimitive,
 {
     find_square_root(v, v, TTL)
 }
 
 impl<T> Next<T, !> for StandardDeviation<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy
+        + Zero
+        + One
+        + FromPrimitive
+        + Add<Output = T>
+        + Div<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + AddAssign
+        + PartialEq,
 {
     type Output = T;
 
@@ -135,7 +146,16 @@ where
 impl<'a, U, T> Next<&'a U, T> for StandardDeviation<T>
 where
     U: Close<T>,
-    T: Copy + ArithmeticType,
+    T: Copy
+        + Zero
+        + One
+        + FromPrimitive
+        + Add<Output = T>
+        + Div<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + AddAssign
+        + PartialEq,
 {
     type Output = T;
 
@@ -146,7 +166,7 @@ where
 
 impl<T> Reset for StandardDeviation<T>
 where
-    T: ArithmeticType,
+    T: Zero,
 {
     fn reset(&mut self) {
         self.index = 0;
@@ -161,7 +181,7 @@ where
 
 impl<T> Default for StandardDeviation<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Zero,
 {
     fn default() -> Self {
         Self::new(9).unwrap()

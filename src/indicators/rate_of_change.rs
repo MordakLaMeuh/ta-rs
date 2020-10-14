@@ -1,9 +1,11 @@
 use std::collections::VecDeque;
 use std::fmt;
+use std::ops::{Div, Mul, Sub};
+
+use num_traits::{FromPrimitive, Zero};
 
 use crate::errors::*;
 use crate::traits::{Close, Next, Reset};
-use crate::ArithmeticType;
 
 /// Rate of Change (ROC)
 ///
@@ -44,10 +46,7 @@ pub struct RateOfChange<T> {
     prices: VecDeque<T>,
 }
 
-impl<T> RateOfChange<T>
-where
-    T: ArithmeticType,
-{
+impl<T> RateOfChange<T> {
     pub fn new(length: u32) -> Result<Self> {
         match length {
             0 => Err(Error::from_kind(ErrorKind::InvalidParameter)),
@@ -64,7 +63,7 @@ where
 
 impl<T> Next<T, !> for RateOfChange<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Zero + FromPrimitive + Mul<Output = T> + Div<Output = T> + Sub<Output = T>,
 {
     type Output = T;
 
@@ -90,7 +89,7 @@ where
 impl<'a, U, T> Next<&'a U, T> for RateOfChange<T>
 where
     U: Close<T>,
-    T: Copy + ArithmeticType,
+    T: Copy + Zero + FromPrimitive + Mul<Output = T> + Div<Output = T> + Sub<Output = T>,
 {
     type Output = T;
 
@@ -99,10 +98,7 @@ where
     }
 }
 
-impl<T> Default for RateOfChange<T>
-where
-    T: ArithmeticType,
-{
+impl<T> Default for RateOfChange<T> {
     fn default() -> Self {
         Self::new(9).unwrap()
     }
@@ -114,10 +110,7 @@ impl<T> fmt::Display for RateOfChange<T> {
     }
 }
 
-impl<T> Reset for RateOfChange<T>
-where
-    T: ArithmeticType,
-{
+impl<T> Reset for RateOfChange<T> {
     fn reset(&mut self) {
         self.prices.clear();
     }

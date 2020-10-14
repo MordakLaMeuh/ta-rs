@@ -1,7 +1,6 @@
 use std::fmt;
 
 use crate::errors::*;
-use crate::ArithmeticType;
 use crate::{Low, Next, Reset};
 
 /// Returns the lowest value in a given time frame.
@@ -31,7 +30,7 @@ pub struct Minimum<T> {
 
 impl<T> Minimum<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + PartialOrd,
 {
     pub fn new(n: u32) -> Result<Self> {
         let n = n as usize;
@@ -75,7 +74,7 @@ where
 
 impl<T> Next<T, !> for Minimum<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + PartialOrd,
 {
     type Output = T;
 
@@ -97,7 +96,7 @@ where
 impl<'a, U, T> Next<&'a U, T> for Minimum<T>
 where
     U: Low<T>,
-    T: Copy + ArithmeticType,
+    T: Copy + PartialOrd,
 {
     type Output = T;
 
@@ -116,7 +115,7 @@ impl<T> Reset for Minimum<T> {
 
 impl<T> Default for Minimum<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + PartialOrd,
 {
     fn default() -> Self {
         Self::new(14).unwrap()

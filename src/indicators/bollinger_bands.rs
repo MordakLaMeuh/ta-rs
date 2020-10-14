@@ -1,8 +1,10 @@
 use std::fmt;
+use std::ops::{Add, AddAssign, Div, Mul, Sub};
+
+use num_traits::{FromPrimitive, One, Zero};
 
 use crate::errors::*;
 use crate::indicators::StandardDeviation as Sd;
-use crate::ArithmeticType;
 use crate::{Close, Next, Reset};
 
 /// A Bollinger Bands (BB).
@@ -60,7 +62,7 @@ pub struct BollingerBandsOutput<T> {
 
 impl<T> BollingerBands<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Zero + PartialOrd,
 {
     pub fn new(length: u32, multiplier: T) -> Result<Self> {
         if multiplier <= T::zero() {
@@ -84,7 +86,16 @@ where
 
 impl<T> Next<T, !> for BollingerBands<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy
+        + Zero
+        + One
+        + FromPrimitive
+        + Add<Output = T>
+        + Div<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + AddAssign
+        + PartialEq,
 {
     type Output = BollingerBandsOutput<T>;
 
@@ -103,7 +114,16 @@ where
 impl<'a, U, T> Next<&'a U, T> for BollingerBands<T>
 where
     U: Close<T>,
-    T: Copy + ArithmeticType,
+    T: Copy
+        + Zero
+        + One
+        + FromPrimitive
+        + Add<Output = T>
+        + Div<Output = T>
+        + Sub<Output = T>
+        + Mul<Output = T>
+        + AddAssign
+        + PartialEq,
 {
     type Output = BollingerBandsOutput<T>;
 
@@ -114,7 +134,7 @@ where
 
 impl<T> Reset for BollingerBands<T>
 where
-    T: ArithmeticType,
+    T: Zero,
 {
     fn reset(&mut self) {
         self.sd.reset();
@@ -123,7 +143,7 @@ where
 
 impl<T> Default for BollingerBands<T>
 where
-    T: Copy + ArithmeticType,
+    T: Copy + Zero + PartialOrd + FromPrimitive,
 {
     fn default() -> Self {
         Self::new(9, T::from_u32(2).expect("Woot ?")).unwrap()
@@ -132,7 +152,7 @@ where
 
 impl<T> fmt::Display for BollingerBands<T>
 where
-    T: fmt::Display + ArithmeticType,
+    T: fmt::Display,
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "BB({}, {})", self.length, self.multiplier)
