@@ -1,7 +1,7 @@
 use std::fmt;
-use std::ops::{Add, Div, Mul, Sub};
+use std::ops::{Add, Div, Mul};
 
-use num_traits::{cast::FromPrimitive, One, Zero};
+use num_traits::cast::FromPrimitive;
 
 use crate::errors::*;
 use crate::{Close, Next, Reset};
@@ -59,22 +59,17 @@ use crate::{Close, Next, Reset};
 #[derive(Debug, Clone)]
 pub struct SmoothedOrModifiedMovingAverage<T> {
     length: u32,
-    current: T,
-    is_new: bool,
+    current: Option<T>,
 }
 
-impl<T> SmoothedOrModifiedMovingAverage<T>
-where
-    T: Zero,
-{
+impl<T> SmoothedOrModifiedMovingAverage<T> {
     pub fn new(length: u32) -> Result<Self> {
         match length {
             0 => Err(Error::from_kind(ErrorKind::InvalidParameter)),
             _ => {
                 let indicator = Self {
                     length,
-                    current: T::zero(),
-                    is_new: true,
+                    current: None,
                 };
                 Ok(indicator)
             }
@@ -90,39 +85,26 @@ impl<T> SmoothedOrModifiedMovingAverage<T> {
 
 impl<T> Next<T, !> for SmoothedOrModifiedMovingAverage<T>
 where
-    T: Copy
-        + FromPrimitive
-        + One
-        + Add<Output = T>
-        + Div<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>,
+    T: Copy + FromPrimitive + Add<Output = T> + Div<Output = T> + Mul<Output = T>,
 {
     type Output = T;
 
     fn next(&mut self, input: T) -> Self::Output {
-        if self.is_new {
-            self.is_new = false;
-            self.current = input;
+        self.current = Some(if let None = self.current {
+            input
         } else {
             // SMMA (i) = (SMMA (i - 1) * (N - 1) + CLOSE (i)) / N
-            self.current = (self.current * (T::from_u32(self.length).unwrap() - T::one()) + input)
-                / T::from_u32(self.length).unwrap();
-        }
-        self.current
+            (self.current.unwrap() * T::from_u32(self.length - 1).unwrap() + input)
+                / T::from_u32(self.length).unwrap()
+        });
+        self.current.unwrap()
     }
 }
 
 impl<'a, U, T> Next<&'a U, T> for SmoothedOrModifiedMovingAverage<T>
 where
     U: Close<T>,
-    T: Copy
-        + FromPrimitive
-        + One
-        + Add<Output = T>
-        + Div<Output = T>
-        + Sub<Output = T>
-        + Mul<Output = T>,
+    T: Copy + FromPrimitive + Add<Output = T> + Div<Output = T> + Mul<Output = T>,
 {
     type Output = T;
 
@@ -131,20 +113,13 @@ where
     }
 }
 
-impl<T> Reset for SmoothedOrModifiedMovingAverage<T>
-where
-    T: Zero,
-{
+impl<T> Reset for SmoothedOrModifiedMovingAverage<T> {
     fn reset(&mut self) {
-        self.current = T::zero();
-        self.is_new = true;
+        self.current = None;
     }
 }
 
-impl<T> Default for SmoothedOrModifiedMovingAverage<T>
-where
-    T: Zero,
-{
+impl<T> Default for SmoothedOrModifiedMovingAverage<T> {
     fn default() -> Self {
         Self::new(9).unwrap()
     }

@@ -9,6 +9,8 @@ use crate::indicators::SmoothedOrModifiedMovingAverage as Smma;
 use crate::{Close, Next, Reset};
 
 /// TODO - NEED TO BE REWRITED
+/// view https://www.instaforex.eu/fr/forex_technical_indicators/moving_average
+/// view https://www.metatrader5.com/en/terminal/help/indicators/trend_indicators/ma
 /// The relative strength index (RSI).
 ///
 /// It is a momentum oscillator,
