@@ -4,11 +4,17 @@ pub use self::exponential_moving_average::ExponentialMovingAverage;
 mod simple_moving_average;
 pub use self::simple_moving_average::SimpleMovingAverage;
 
+mod smoothed_or_modified_moving_average;
+pub use self::smoothed_or_modified_moving_average::SmoothedOrModifiedMovingAverage;
+
 mod standard_deviation;
 pub use self::standard_deviation::StandardDeviation;
 
 mod relative_strength_index;
 pub use self::relative_strength_index::RelativeStrengthIndex;
+
+mod relative_strength_index_smma;
+pub use self::relative_strength_index_smma::RelativeStrengthIndexSmma;
 
 mod minimum;
 pub use self::minimum::Minimum;

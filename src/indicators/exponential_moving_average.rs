@@ -100,7 +100,8 @@ where
             self.is_new = false;
             self.current = input;
         } else {
-            self.current = self.k * input + (T::one() - self.k) * self.current;
+            // EMA = (CLOSE (i) * P) + (EMA (i - 1) * (1 - P))
+            self.current = (input * self.k) + (self.current * (T::one() - self.k));
         }
         self.current
     }
