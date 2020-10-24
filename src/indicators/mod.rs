@@ -53,4 +53,4 @@ mod on_balance_volume;
 pub use self::on_balance_volume::OnBalanceVolume;
 
 mod heikin_ashi;
-pub use self::heikin_ashi::{Candle, HeikinAshi};
+pub use self::heikin_ashi::{HeikinAshi, HeikinAshiCandle};

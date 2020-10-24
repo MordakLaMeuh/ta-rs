@@ -41,13 +41,11 @@ use std::ops::{Add, Div};
 
 #[derive(Debug, Clone)]
 pub struct HeikinAshi<T> {
-    prev_open: Option<T>,
-    prev_close: Option<T>,
-    is_new: bool,
+    prev: Option<PreviousValues<T>>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Candle<T> {
+pub struct HeikinAshiCandle<T> {
     open: T,
     close: T,
     high: T,
@@ -56,12 +54,14 @@ pub struct Candle<T> {
 
 impl<T> HeikinAshi<T> {
     pub fn new() -> Self {
-        Self {
-            prev_open: None,
-            prev_close: None,
-            is_new: true,
-        }
+        Self { prev: None }
     }
+}
+
+#[derive(Debug, Copy, Clone)]
+struct PreviousValues<T> {
+    open: T,
+    close: T,
 }
 
 impl<'a, U, T> Next<&'a U, T> for HeikinAshi<T>
@@ -69,25 +69,23 @@ where
     U: Open<T> + Close<T> + High<T> + Low<T>,
     T: Copy + PartialOrd + Add<Output = T> + Div<Output = T> + FromPrimitive,
 {
-    type Output = Candle<T>;
+    type Output = HeikinAshiCandle<T>;
 
     fn next(&mut self, input: &'a U) -> Self::Output {
-        let ha_open = if self.is_new {
-            // We consider that nothing happened during the first candle
-            self.is_new = false;
-            input.close()
+        let open = if let Some(prev) = self.prev {
+            (prev.open + prev.close) / T::from_u32(2).unwrap()
         } else {
-            (self.prev_open.unwrap() + self.prev_close.unwrap()) / T::from_u32(2).unwrap()
+            // We consider that nothing happened during the first candle
+            input.close()
         };
-        let ha_close =
+        let close =
             (input.open() + input.close() + input.high() + input.low()) / T::from_u32(4).unwrap();
-        self.prev_open = Some(ha_open);
-        self.prev_close = Some(ha_close);
+        self.prev = Some(PreviousValues { open, close });
         Self::Output {
-            open: ha_open,
-            close: ha_close,
-            high: partial_max(partial_max(input.high(), ha_open), ha_close),
-            low: partial_min(partial_min(input.low(), ha_open), ha_close),
+            open,
+            close,
+            high: partial_max(partial_max(input.high(), open), close),
+            low: partial_min(partial_min(input.low(), open), close),
         }
     }
 }
