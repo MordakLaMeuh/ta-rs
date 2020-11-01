@@ -44,12 +44,19 @@ pub struct HeikinAshi<T> {
     prev: Option<PreviousValues<T>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct HeikinAshiCandle<T> {
-    open: T,
-    close: T,
-    high: T,
-    low: T,
+    pub open: T,
+    pub close: T,
+    pub high: T,
+    pub low: T,
+    pub color: HeikinAshiColor,
+}
+
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+pub enum HeikinAshiColor {
+    Green,
+    Red,
 }
 
 impl<T> HeikinAshi<T> {
@@ -81,11 +88,13 @@ where
         let close =
             (input.open() + input.close() + input.high() + input.low()) / T::from_u32(4).unwrap();
         self.prev = Some(PreviousValues { open, close });
+        use HeikinAshiColor::{Green, Red};
         Self::Output {
             open,
             close,
             high: partial_max(partial_max(input.high(), open), close),
             low: partial_min(partial_min(input.low(), open), close),
+            color: if open < close { Green } else { Red },
         }
     }
 }
