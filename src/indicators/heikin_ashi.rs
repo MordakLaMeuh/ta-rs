@@ -144,7 +144,7 @@ mod tests {
     use super::*;
     use crate::test_helper::Bar;
 
-    impl<T> PartialEq for Candle<T>
+    impl<T> PartialEq for HeikinAshiCandle<T>
     where
         T: PartialEq,
     {
@@ -162,31 +162,34 @@ mod tests {
         let ohlc = Bar::new().open(10.0).close(20.0).high(20.0).low(10.0);
         assert_eq!(
             ha.next(&ohlc),
-            Candle {
+            HeikinAshiCandle {
                 open: 20.0,
                 close: 15.0,
                 high: 20.0,
                 low: 10.0,
+                color: HeikinAshiColor::Red,
             }
         );
         let ohlc = Bar::new().open(20.0).close(15.0).high(25.0).low(12.0);
         assert_eq!(
             ha.next(&ohlc),
-            Candle {
+            HeikinAshiCandle {
                 open: 17.5,
                 close: 18.0,
                 high: 25.0,
                 low: 12.0,
+                color: HeikinAshiColor::Green,
             }
         );
         let ohlc = Bar::new().open(15.0).close(5.0).high(17.0).low(5.0);
         assert_eq!(
             ha.next(&ohlc),
-            Candle {
+            HeikinAshiCandle {
                 open: 17.75,
                 close: 10.5,
                 high: 17.75,
                 low: 5.0,
+                color: HeikinAshiColor::Red,
             }
         );
     }
@@ -197,22 +200,24 @@ mod tests {
         let ohlc = Bar::new().open(10.0).close(20.0).high(20.0).low(10.0);
         assert_eq!(
             ha.next(&ohlc),
-            Candle {
+            HeikinAshiCandle {
                 open: 20.0,
                 close: 15.0,
                 high: 20.0,
                 low: 10.0,
+                color: HeikinAshiColor::Red,
             }
         );
         ha.reset();
         let ohlc = Bar::new().open(10.0).close(20.0).high(20.0).low(10.0);
         assert_eq!(
             ha.next(&ohlc),
-            Candle {
+            HeikinAshiCandle {
                 open: 20.0,
                 close: 15.0,
                 high: 20.0,
                 low: 10.0,
+                color: HeikinAshiColor::Red,
             }
         );
     }

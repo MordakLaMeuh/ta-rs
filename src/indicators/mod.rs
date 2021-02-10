@@ -54,3 +54,6 @@ pub use self::on_balance_volume::OnBalanceVolume;
 
 mod heikin_ashi;
 pub use self::heikin_ashi::{HeikinAshi, HeikinAshiCandle, HeikinAshiColor};
+
+mod ichimoku;
+pub use self::ichimoku::{Ichimoku, IchimokuOutput};
