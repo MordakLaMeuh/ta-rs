@@ -6,9 +6,8 @@ use num_traits::cast::FromPrimitive;
 use crate::errors::*;
 use crate::{Close, Next, Reset};
 
-/// TODO - NEED TO BE REWRITED
-/// view https://www.instaforex.eu/fr/forex_technical_indicators/moving_average
-/// view https://www.metatrader5.com/en/terminal/help/indicators/trend_indicators/ma
+/// view `<https://www.instaforex.eu/fr/forex_technical_indicators/moving_average>`
+/// view `<https://www.metatrader5.com/en/terminal/help/indicators/trend_indicators/ma>`
 /// An exponential moving average (EMA), also known as an exponentially weighted moving average
 /// (EWMA).
 ///
