@@ -2,8 +2,8 @@ use crate::{Close, High, Low, Next, Reset};
 
 use num_traits::cast::FromPrimitive;
 
+use std::collections::VecDeque;
 use std::ops::{Add, Div};
-use std::ops::{Index, IndexMut};
 
 /// chimoku Kinko Hyo (IKH) (Japanese一目均衡表, Ichimoku Kinkō Hyō),
 ///
@@ -54,11 +54,12 @@ use std::ops::{Index, IndexMut};
 
 #[derive(Debug)]
 pub struct Ichimoku<T> {
-    tenkan_sen_length: u32,    // 9
-    kijun_sen_length: u32,     // 26
-    senkou_span_b_length: u32, // 52
-    nb_elemts: u32,
-    data: CircularQueue<IchimokuOutput<T>>,
+    tenkan_sen_length: usize,    // 9
+    kijun_sen_length: usize,     // 26
+    senkou_span_b_length: usize, // 52
+    nb_elemts: usize,
+    // data: CircularQueue<IchimokuOutput<T>>,
+    data: VecDeque<IchimokuOutput<T>>,
 }
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
@@ -89,12 +90,17 @@ where
             && tenkan_sen_length < kijun_sen_length
             && kijun_sen_length < senkou_span_b_length
         {
+            let mut data =
+                VecDeque::with_capacity((kijun_sen_length + senkou_span_b_length) as usize);
+            for _i in 0..(kijun_sen_length + senkou_span_b_length) {
+                data.push_back(IchimokuOutput::default());
+            }
             Self {
-                tenkan_sen_length,
-                kijun_sen_length,
-                senkou_span_b_length,
+                tenkan_sen_length: tenkan_sen_length as usize,
+                kijun_sen_length: kijun_sen_length as usize,
+                senkou_span_b_length: senkou_span_b_length as usize,
                 nb_elemts: 0,
-                data: CircularQueue::new(kijun_sen_length + senkou_span_b_length),
+                data,
             }
         } else {
             panic!("bad ichimoku parameters");
@@ -106,7 +112,7 @@ impl<T> Ichimoku<T>
 where
     T: Clone + Copy + PartialOrd + Add<Output = T> + Div<Output = T> + FromPrimitive,
 {
-    fn get_average(&self, offset: u32) -> T {
+    fn get_average(&self, offset: usize) -> T {
         let mut high: Option<T> = None;
         let mut low: Option<T> = None;
         for i in (self.senkou_span_b_length - offset)..self.senkou_span_b_length {
@@ -131,7 +137,8 @@ where
     fn next(&mut self, input: &'a U) -> Self::Output {
         self.nb_elemts += 1;
         if self.nb_elemts > (self.senkou_span_b_length) {
-            self.data.shl();
+            drop(self.data.pop_front());
+            self.data.push_back(IchimokuOutput::default());
         }
         if self.nb_elemts < (self.senkou_span_b_length) {
             let refer = &mut self.data[self.nb_elemts - 1];
@@ -178,56 +185,10 @@ where
     T: Clone + Default,
 {
     fn reset(&mut self) {
-        self.data = CircularQueue::new(self.kijun_sen_length + self.senkou_span_b_length);
+        for i in 0..(self.kijun_sen_length + self.senkou_span_b_length) {
+            self.data[i] = IchimokuOutput::default();
+        }
         self.nb_elemts = 0;
-    }
-}
-
-#[derive(Debug)]
-struct CircularQueue<T> {
-    capacity: u32,
-    shl: u32,
-    data: Vec<T>,
-}
-
-impl<T> CircularQueue<T>
-where
-    T: Clone + Default,
-{
-    fn new(length: u32) -> Self {
-        Self {
-            capacity: length,
-            shl: 0,
-            data: vec![T::default(); length as usize],
-        }
-    }
-
-    /// shift left
-    fn shl(&mut self) {
-        self.data[self.shl as usize] = T::default();
-        self.shl = (self.shl + 1) % self.capacity;
-    }
-}
-
-impl<T> Index<u32> for CircularQueue<T> {
-    type Output = T;
-
-    fn index(&self, idx: u32) -> &Self::Output {
-        if idx >= self.capacity {
-            panic!("Out of bound");
-        }
-        let real_index = (self.shl + idx) % self.capacity;
-        &self.data[real_index as usize]
-    }
-}
-
-impl<T> IndexMut<u32> for CircularQueue<T> {
-    fn index_mut(&mut self, idx: u32) -> &mut Self::Output {
-        if idx >= self.capacity {
-            panic!("Out of bound");
-        }
-        let real_index = (self.shl + idx) % self.capacity;
-        &mut self.data[real_index as usize]
     }
 }
 
@@ -247,30 +208,6 @@ mod tests {
         for i in 0..12 {
             assert_eq!(ich.data[i], IchimokuOutput::default());
         }
-    }
-
-    #[test]
-    fn test_circular_queue() {
-        let mut queue = CircularQueue::new(4);
-        queue[0] = 1;
-        queue[1] = 2;
-        queue[2] = 3;
-        queue[3] = 4;
-        assert_eq!(queue[0], 1);
-        assert_eq!(queue[1], 2);
-        assert_eq!(queue[2], 3);
-        assert_eq!(queue[3], 4);
-        queue.shl();
-        assert_eq!(queue[0], 2);
-        assert_eq!(queue[1], 3);
-        assert_eq!(queue[2], 4);
-        assert_eq!(queue[3], 0);
-        queue.shl();
-        assert_eq!(queue[0], 3);
-        queue.shl();
-        assert_eq!(queue[0], 4);
-        queue.shl();
-        assert_eq!(queue[0], 0);
     }
 
     #[test]
