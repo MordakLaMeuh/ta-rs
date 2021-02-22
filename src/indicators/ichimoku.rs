@@ -59,7 +59,7 @@ pub struct Ichimoku<T> {
     senkou_span_b_length: usize, // 52
     nb_elemts: usize,
     // data: CircularQueue<IchimokuOutput<T>>,
-    data: VecDeque<IchimokuOutput<T>>,
+    pub data: VecDeque<IchimokuOutput<T>>,
 }
 
 #[derive(Debug, Copy, Clone, Default, PartialEq)]
